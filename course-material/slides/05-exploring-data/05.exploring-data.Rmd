@@ -33,7 +33,6 @@ library(fpp2)
 library(tidyverse)
 library(tidyquant)
 library(knitr)
-library(kableExtra)
 library(DT)
 style_mono_accent(
   base_color = "#1c5253",
@@ -43,6 +42,7 @@ style_mono_accent(
   )
 library(tsfe)
 use_panelset()
+use_tile_view()
 ```
 
 .acid[
@@ -1016,7 +1016,7 @@ class: middle
 
 ## Example: White noise
 
-```{r}
+```{r fig.height='3'}
 wn <- ts(rnorm(36))
 autoplot(wn)
 ```
