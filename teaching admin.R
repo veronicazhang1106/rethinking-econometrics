@@ -14,7 +14,7 @@ drive_download("github student information",overwrite = TRUE)
 students_info<-import("github student information.xlsx")
 students<-students_info$`Github Username`[!is.na(students_info$`Github Username`)]
 org_admins(org = "Time-series-financial-econometrics")
-org_repos(org = "Time-series-financial-econometrics")
+org_sitrep(org = "Time-series-financial-econometrics")
 org_members(org = "Time-series-financial-econometrics")
 
 org_invite(org = "Time-series-financial-econometrics",user = students)
@@ -23,3 +23,17 @@ gh::gh_whoami()
 # usethis::browse_github()
 # usethis::create_github_token()
 credentials::set_github_pat()
+
+
+## individual repo distribution
+
+org_create_assignment(
+  org = "Time-series-financial-econometrics",
+  user = students,
+  repo = paste0("hw1-ind-",students),
+  source_repo = "Time-series-financial-econometrics/hw1",
+  private = TRUE
+)
+
+
+
