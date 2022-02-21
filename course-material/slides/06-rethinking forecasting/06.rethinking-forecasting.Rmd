@@ -17,6 +17,8 @@ output:
       ratio: "16:9"
       beforeInit: "https://platform.twitter.com/widgets.js"
     seal: true 
+    includes:
+      in_header: "mathjax-equation-numbers.html"
 ---
 ```{r child = "../setup.Rmd"}
 ```
@@ -109,7 +111,7 @@ class: middle
 .pull-right[
 #### Seasonal naïve method
 
-  * Forecasts equal to last value from same season.
+* Forecasts equal to last value from same season.
   * Forecasts: $\hat{y}_{T+h|T} =y_{T+h-m(k+1)}$, where $m=$ seasonal period and $k$ is the integer part of $(h-1)/m$.
 
 #### Drift method
@@ -117,11 +119,9 @@ class: middle
 * Forecasts equal to last value plus average change.
 * Forecasts
 
-$$\begin{align*}
-\hat{y}_{T+h|T} & =  y_{T} + \frac{h}{T-1}\sum_{t=2}^T (y_t-y_{t-1})\\
-                 & = y_T + \frac{h}{T-1}(y_T -y_1).
-\end{align*}
-$$
+$$\hat{y}_{T+h|T} =  y_{T} + \frac{h}{T-1}\sum_{t=2}^T (y_t-y_{t-1})$$
+
+$$\hat{y}_{T+h|T} = y_T + \frac{h}{T-1}(y_T -y_1)$$
 
 * Equivalent to extrapolating a line drawn between first and last observations.
 ]
@@ -385,20 +385,16 @@ class: middle
 
 ## Measures of forecast accuracy
 
-|||
-|:--:|:--:|
-|$y_{T+h}=$ | $(T+h)$th observation, $h=1,\dots,H$ |
-|${y}^{T+h}_{T}=$ | its forecast based on data up to time $T$.|
-|$e_{T+h} =$  | $y_{T+h} - {y}^{T+h}_{T}$ |
+- $y_{T+h}$ is $(T+h)$ th observation, $h=1,\dots,H$
+- $\hat{y}^{T+h}_{T}$ is the forecast based on data up to time $T$ 
+- $e_{T+h} = y_{T+h} - {y}^{T+h}_{T}$ 
 
-$$
-\begin{align*}
-\text{MAE} &= \text{mean}(|e_{T+h}|) \\[-0.2cm]
-\text{MSE} &= \text{mean}(e_{T+h}^2) \qquad
-&&\text{RMSE} &= \sqrt{\text{mean}(e_{T+h}^2)} \\[-0.1cm]
-\text{MAPE} &= 100\text{mean}(|e_{T+h}|/ |y_{T+h}|)
-\end{align*}
-$$
+$$\text{MAE} = \text{mean}(|e_{T+h}|)$$
+
+$$\text{MSE} = \text{mean}(e_{T+h}^2) \qquad$$
+$$\text{RMSE} = \sqrt{\text{mean}(e_{T+h}^2)}$$
+
+$$\text{MAPE} = 100\text{mean}(|e_{T+h}|/ |y_{T+h}|)$$
 * MAE, MSE, RMSE are all scale dependent.
 * MAPE is scale independent but is only sensible if $y_t\gg 0$ for all $t$, and $y$ has a natural zero.
 
@@ -417,9 +413,9 @@ where $Q$ is a stable measure of the scale of the time series $\{y_t\}$.
 .hand[Proposed by Hyndman and Koehler (IJF, 2006).]
 
 - For non-seasonal time series,
-$$
-  Q = (T-1)^{-1}\sum_{t=2}^T |y_t-y_{t-1}|
-$$
+
+$$Q = (T-1)^{-1}\sum_{t=2}^T |y_t-y_{t-1}|$$
+
 works well. Then MASE is equivalent to MAE relative to a naïve method.
 
 ]
@@ -500,6 +496,7 @@ for(j in 1:10)
 }
 text(28,.95,"time")
 ```
+]
 ]
 
 ---
@@ -674,7 +671,7 @@ bayes_rw<-stan_naive(ftse$adjusted,chains = 4)
 ]
 .panel[
 .panel-name[Check the model simulations]
-```{r, out.width="50%"}
+```{r}
 mcmc_plot(bayes_rw)
 ```
 
