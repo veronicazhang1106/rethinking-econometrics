@@ -16,26 +16,40 @@ output:
       countIncrementalSlides: false
       ratio: "16:9"
       beforeInit: "https://platform.twitter.com/widgets.js"
-    seal: true 
-    includes:
-      in_header: "mathjax-equation-numbers.html"
+    seal: true
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-	echo = FALSE,
-	message = FALSE,
-	warning = TRUE,
-	cache = TRUE
-)
+```{r child = "../setup.Rmd"}
+```
+
+```{r setup1, include=FALSE}
+options(htmltools.dir.version = FALSE)
+library(knitr)
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE, message=FALSE)
+library(tidyverse)
+library(fontawesome) 
+library(xaringanExtra)
+library(xaringanthemer)
+library(fpp2)
+# library(bayesforecast)
+library(tidyquant)
+library(knitr)
+library(DT)
+theme_set(theme_tq(base_size = 14))
+style_mono_accent(
+  base_color = "#1c5253",
+  header_font_google = google_font("Josefin Sans"),
+  text_font_google   = google_font("Montserrat", "300", "300i"),
+  code_font_google   = google_font("Fira Mono")
+  )
+library(tsfe)
+use_panelset()
+use_tile_view()
 MyDeleteItems<-ls()
 rm(list=MyDeleteItems)
-# library(tidyverse) 
-## NOTE: tidyverse does not work with autolayer from forecast, probably because of the ggfortify problems but requires more investigation.
-library(tsfe)
-library(fpp2)
-theme_set(theme_dark(base_size = 14))
-
+library(latex2exp)
+theme_set(theme_dark(base_size = 10))
+library(tidyquant)
 ```
 
 ---
@@ -44,307 +58,86 @@ class: middle
 # Learning outcomes
 
 .large[
-- Breaking a time series into parts
+- Stationary and differencing
+- Modelling stationary time series
+- ARIMA models
+- Forecasting at scale: Prophet revisited
 ]
 ---
 class: middle
-
-## Time series decomposition
-
-.blockquote.pull-left[
-$$y_t = f(S_t, T_t, R_t)$$
-- $y_t=$  data at period $t$
-- $T_t=$ trend-cycle component at period $t$
-- $S_t=$ & seasonal component at period $t$ 
--  $R_t=$ & remainder component at period $t$
-]
-.pull-right[
-- **Additive decomposition:** $y_t = S_t + T_t + R_t.$
-*  Additive model appropriate if magnitude of seasonal fluctuations does not vary with level.
-
-- **Multiplicative decomposition:** $y_t = S_t \times T_t \times R_t.$
-*  If seasonal are proportional to level of series, then multiplicative model appropriate.
-*  Multiplicative decomposition more prevalent with economic series
-*  Logs turn multiplicative relationship into an additive relationship:
-
-$$y_t = S_t \times T_t \times E_t \quad\Rightarrow\quad\log y_t = \log S_t + \log T_t + \log R_t.$$
-]
-
----
-class: middle
-
-## Carnival eps
-
-```{r carnistl, fig.width=8, fig.height=4.3}
-fit <- stl(tsfe::carnival_eps_ts, s.window=7)
-autoplot(fit) + xlab("Year")
-```
-
-## Carnival eps
-
-```{r carnseries}
-ggsubseriesplot(seasonal(fit))
-```
-
-## Carnival eps
-
-\fontsize{11}{13}\sf
-
-```{r carnival-eps-trend}
-library(forecast)
-autoplot(carnival_eps_ts, series="Data") +
-forecast::autolayer(trendcycle(fit), series="Trend-cycle")
-```
-
-## Helper functions
-  * `seasonal()` extracts the seasonal component
-  * `trendcycle()` extracts the trend-cycle component
-  * `remainder()` extracts the remainder component.
-  * `seasadj()` returns the seasonally adjusted series.
-
-## Your turn
-
-Repeat the decomposition using
-
-```r
-carnival_eps_ts %>%
-  stl(s.window=7, t.window=11) %>%
-  autoplot()
-```
-
-What happens as you change `s.window` and `t.window`?
-
-## Your turn results
-
-```{r echo=TRUE}
-carnival_eps_ts %>%
-  stl(s.window=7, t.window=11) %>%
-  autoplot()
-```
-
-# Seasonal adjustment
-
-## Seasonal adjustment
-
-  *  Useful by-product of decomposition:  an easy way to calculate seasonally adjusted data.
-  *  Additive decomposition: seasonally adjusted data given by
-
-$$y_t - S_t = T_t + R_t$$
-
-  *  Multiplicative decomposition: seasonally adjusted data given by
-
-$$y_t / S_t = T_t \times R_t$$
-
-## Unilever eps
-
-\fontsize{11}{15}\sf
-
-```r
-fit <- stl(unilever_eps_ts, s.window=7)
-autoplot(unilever_eps_ts, series="Data") +
-  autolayer(seasadj(fit), series="Seasonally Adjusted")
-```
-
-```{r unilever_eps_ts-sa, echo=FALSE, out.height="70%"}
-ni_hsales_ts1<- window(ni_hsales_ts,start=c(2010,1))
-fit <- stl(ni_hsales_ts1, s.window=7)
-autoplot(ni_hsales_ts1, series="Data") +
-  autolayer(seasadj(fit), series="Seasonally Adjusted") +
-  xlab("Year") + ylab("Verified sales") +
-  ggtitle("Northern ireland house sales") +
-  scale_colour_manual(values=c("gray","blue"),
-                     breaks=c("Data","Seasonally Adjusted"))
-```
-
-## Seasonal adjustment
-
-  * We use estimates of $S$ based on past values to seasonally adjust a current value.
-  *  Seasonally adjusted  series reflect **remainders** as well as **trend**. Therefore they are not "smooth"" and "downturns"" or "upturns" can be misleading.
-  *  It is better to use the trend-cycle component to look for turning points.
-  
-## Seasonal decomposition using Loess (STL)
-
-\fontsize{10}{14}\sf
-
-```{r stlagain, echo=TRUE, warning=FALSE, fig.width=8, fig.height=4}
-fit <- stl(carnival_eps_ts, s.window=7, robust = TRUE)
-autoplot(fit) +
-  ggtitle("STL decomposition of carnival EPS")
-```
-
-## STL decomposition
-
-\fontsize{10}{14}\sf
-
-```{r stlagain2, echo=TRUE, warning=FALSE, fig.width=8, fig.height=4}
-fit <- stl(carnival_eps_ts, t.window = 10, s.window="periodic", robust = TRUE)
-autoplot(fit) +
-  ggtitle("STL decomposition of carnival EPS")
-```
-
-## STL decomposition
-
-```r
-stl(carnival_eps_ts, s.window=7)
-
-stl(carnival_eps_ts, t.window=15,
-  s.window="periodic", robust=TRUE)
-```
-
-  *  `t.window` controls wiggliness of trend component.
-  *  `s.window` controls variation on seasonal component.
-
-## STL decomposition
-\fontsize{10}{14}\sf
-
-```{r mstl, fig.width=8, fig.height=4}
-carnival_eps_ts %>% mstl(lambda = "auto") %>% autoplot()
-```
-
-* Uses `mstl()` which is an iterative approach STL.
-* `mstl()` chooses `s.window=13`
-* Can include a `lambda` argument for Box-cox transformation.
-* Above includes an automatic calibration of lamdda.
-
-# Forecasting and decomposition
-
-## Forecasting and decomposition
-
-  *  Forecast seasonal component by repeating the last year
-  *  Forecast seasonally adjusted data using non-seasonal time series method.
-  *  Combine forecasts of seasonal component with forecasts of seasonally adjusted data to get forecasts of original data.
-  *  Sometimes a decomposition is useful just for understanding the data before building a separate forecasting model.
-
-## Northern ireland house sales
-
-\fontsize{11}{14}\sf
-
-```{r nihsales4, echo=TRUE, out.height="60%", fig.align="center"}
-fit <- stl(ni_hsales_ts1, t.window=13, s.window="periodic")
-fit %>% seasadj() %>% naive() %>%
-  autoplot() + ylab("Verified Sales") +
-  ggtitle("ETS forecasts of seasonally adjusted data")
-```
-
-<!-- ## Northern ireland house sales -->
-
-<!-- \fontsize{10}{14}\sf -->
-
-<!-- ```{r nihsales5, echo=TRUE} -->
-<!-- fit %>% forecast(method='naive') %>% -->
-<!--   autoplot() + ylab("Verified sales") + xlab("Year") -->
-<!-- ``` -->
-
-## Forecasting and decomposition
-
-\fontsize{11}{14}\sf
-
-```{r stlf,echo=T, out.height="60%", fig.align="center"}
-ni_hsales_ts1 %>% stlf(method='naive') %>%
-  autoplot() + ylab("Verified") + xlab("Year")
-```
-
-## Decomposition and prediction intervals
-\fontsize{12}{14}\sf
-  *  It is common to take the prediction intervals from the seasonally adjusted forecasts and modify them with the seasonal component
-    *  This ignores the uncertainty in the seasonal component estimate.
-    *  It also ignores the uncertainty in the future seasonal pattern.
-    *  Rationally the uncertainty of the seasonal component is likely to be much smaller than for the seasonally adjusted data.
-  *  In practice some companies routinely use the decomposition approach for operational data forecasts such as earnings.
-  
-```{r compare pis for stl forecast methods, eval=F,include=F}
-library(knitr)
-library(kableExtra)
-t1<-fit %>% forecast(method='naive') %>% as_tibble() %>% slice(5:8)
-t2<-ni_hsales_ts1 %>% stlf(method='naive') %>% as_tibble() %>% slice(5:8) 
-kable(rbind(t1,t2),digits = 1, booktabs=TRUE) %>%
- kable_styling("striped", full_width = F) %>%
-  pack_rows("Group 1", 1,4) %>%
-  pack_rows("Group 2", 5,8)
-```
-
-
 # Stationarity and differencing
 
-## Stationarity
-
-* The foundation of statistical inference in time series analysis is the concept of weak stationarity.
-
-A \textbf{stationary series} is:
+* The foundation of statistical inference in time series analysis is the concept of weak stationarity.  A stationary series":
 
 *  roughly horizontal
 *  constant variance
 *  no patterns predictable in the long-term
 
-## Stationary?
+---
+class: middle
 
+.your-turn[
+
+Is these financial time series stationary?
+.pull-left[
 ```{r}
-autoplot(r2000r_m_ts) + ylab("Log returns") + xlab("Year") + labs(title="Figure 2:",subtitle =" Monthly log returns of the Russell 2000 Price Index from March 1988 to December 2019")
+tsfe::indices %>%
+  select(date,`RUSSELL 2000 - PRICE INDEX`) %>%
+  rename(r2000=`RUSSELL 2000 - PRICE INDEX`) %>%
+  drop_na() %>%
+  tq_transmute(select =r2000,mutate_fun = periodReturn,type='log') ->monthly_r2002r
+  ts(monthly_r2002r$monthly.returns, start = c(1988,1))->r2000r_m_ts
+  autoplot(r2000r_m_ts) + ylab("Log returns") + xlab("Year") + labs(title="Figure 2: Monthly log returns of the Russell 2000 Price Index",subtitle =" from March 1988 to December 2019")
 ```
-
-## Stationary?
-
+]
+.pull-right[
 ```{r}
 autoplot(carnival_eps_ts) + xlab("Year") + ylab("Earnings") +
   labs(title="Figure 3:",subtitle =  "Quarterly earnings per share for Carnival Plc from the first quarter of 1994 to the fourth quarter of 2019")
 ```
+]
+]
 
-## Inference and stationarity
+---
+class: middle 
 
-\small
+.pull-left[
+#### Inference and stationarity
 
-* As show in Figure 2 the monthly log returns of Russell 2000 index vary around zero over time.
+* The monthly log returns of Russell 2000 index vary around zero over time.
   * If we divide up the data into subperiods we would expect each sample mean to be roughly zero.
 * Furthermore, expect the recent financial crisis (2007-2009), the log returns range is approximately [-0.2,0.2].
 * Statistically, the mean and the variance are constant over time OR time invariant. 
 * Put together these to time invariant properties characterise a weakly stationary series.
-
-
-## Weak stationarity and prediction
+]
+.pull-right[
+#### Weak stationarity and prediction
 
 * Weak form stationarity provides a basic framework for prediction.
 * For the monthly log returns of the Russell 2000 we can predict with reasonable confidence:
 * Future monthly returns $\approx0$ and vary $[-0.2,0.2]$
+]
 
+---
+class: middle
 
 ## Inference and nonstationarity
 
-* Figure 3 shows quarterly earnings for Carnival Plc.
+* Consider quarterly earnings for Carnival Plc.
 * If the timespan is divided into subperiods the sample mean and variance for each period show increasing pattern.
 * Earnings are **not** weakly stationary.
 * There does exist models and methods for modelling such nonstationary series.
-
+* 
 ## Your turn: Stationary?
 
 ```{r}
-autoplot(vix_ts) + ylab("VIX") + xlab("Trading days from 4/1/2010") + ggtitle("VIX Index (Daily ending 31 Jan 2020)")
+tq_get('^VIX') %>%
+  ggplot(aes(x=date,y=adjusted)) + 
+  ylab("VIX") + geom_line()
 ```
 
-## Stationarity
-
-\begin{block}{Formal Definition}
-If $\{y_t\}$ is a stationary time series, then for all $s$, the distribution of $(y_t,\dots,y_{t+s})$ does not depend on $t$.
-\end{block}\pause\vspace*{0.4cm}
-
-\begin{block}{Weak form Definition}
-If $\{y_t\}$ is a weakly stationary time series, if its first 2 moments (mean and variance) are time invariant.
-\end{block}
-
-\small
-Transformations help to \textbf{stabilize the variance}.  For ARIMA modelling, we also need to \textbf{stabilize the mean}.
-
-## Properties of a stationary time series
-
-\small
-
-* For a given $k$, we can define the lag-k autocovariance of $y_t$ as 
-
-$$\gamma_k=Cov(y_t,y_{t-k})$$
-
-* For a weakly stationary time series $y_t$, $\gamma_k$ is time invariant and only depends on $k$.
-* It measures the linear dependence between $y_t$ and $y_{t-k}$
-* That is it measures the dynamic dependence of $y_t$ on its past $y_{t-k}$.
-* In general, linear financial time series analysis focuses on studying the **dynamic depedence** of the series $y_t$
+---
+class: middle
 
 ## Non-stationarity in the mean
 
@@ -381,34 +174,17 @@ autoplot(diff(ftse_m_ts)) + ylab("Change in monthly FTSE Index") + xlab("Year")
 ggAcf(diff(ftse_m_ts))
 ```
 
+---
+class: middle
+
 ## Differencing
 
 * Differencing helps to **stabilize the mean**.
 * The differenced series is the *change* between each observation in the original series: ${y'_t = y_t - y_{t-1}}$.
 * The differenced series will have only $T-1$ values since it is not possible to calculate a difference $y_1'$ for the first observation.
 
-## Second-order differencing
-
-Occasionally the differenced data will not appear stationary and it
-may be necessary to difference the data a second time:\pause
-\begin{align*}
-y''_{t} &=  y'_{t} - y'_{t - 1} \\
-&= (y_t - y_{t-1}) - (y_{t-1}-y_{t-2})\\
-&= y_t - 2y_{t-1} +y_{t-2}.
-\end{align*}\pause
-
-* $y_t''$ will have  $T-2$  values.
-* In practice,  it is almost never necessary to go beyond second-order
-differences.
-
-## Seasonal differencing
-
-A seasonal difference is the difference between an observation and the corresponding observation from the previous year.\pause
-$${y'_t = y_t - y_{t-m}}$$
-where $m=$ number of seasons.\pause
-
-* For monthly data $m=12$.
-* For quarterly data $m=4$.
+---
+class: middle
 
 ## carnival earnings ending 2010 Q1
 ```{r carnival1, fig.height=4}
@@ -422,16 +198,19 @@ window(carnival_eps_ts,end=c(2010,1)) %>% log() %>% autoplot()
 
 ## log Carnival earnings seasonally differenced
 
-\small
+
 ```{r carnival3, echo=TRUE, out.height="60%"}
 window(carnival_eps_ts,end=c(2010,1)) %>% 
   log() %>% diff(lag=4) %>%  autoplot()
 ```
 
-## \small log carnival earnings differenced twice
+## l log carnival earnings differenced twice
 ```{r carnival4, echo=T, out.height="60%"}
 window(carnival_eps_ts,end=c(2010,1)) %>% log() %>% diff(lag=4) %>% diff(lag=1) %>% autoplot()
 ```
+
+---
+class: middle
 
 ## Carnival earnings
 
@@ -440,43 +219,36 @@ window(carnival_eps_ts,end=c(2010,1)) %>% log() %>% diff(lag=4) %>% diff(lag=1) 
 
 If $y'_t = y_t - y_{t-12}$ denotes seasonally differenced series, then twice-differenced series i
 
-\begin{block}{}
-\begin{align*}
-y^*_t &= y'_t - y'_{t-1} \\
-      &= (y_t - y_{t-12}) - (y_{t-1} - y_{t-13}) \\
-      &= y_t - y_{t-1} - y_{t-12} + y_{t-13}\: .
-\end{align*}
-\end{block}\vspace*{10cm}
-
-## Seasonal differencing
+#### Seasonal differencing
 
 When both seasonal and first differences are applied\dots\pause
 
-* it makes no difference
-which is done first---the result will be the same.
+* it makes no difference which is done first the result will be the same.
 * If seasonality is strong, we recommend that seasonal differencing be done first because sometimes the resulting series will be stationary and there will be no need for further first difference.
 
-\pause
-
-It is important that if differencing is used, the differences are
+* It is important that if differencing is used, the differences are
 interpretable.
+
+---
+class: middle
 
 ## Interpretation of differencing
 
 * first differences are the change between **one observation and the next**;
 * seasonal differences are the change between **one year to the next**.
 
-\pause
-
 * But taking lag 3 differences for yearly data, for example, results in a model which cannot be sensibly interpreted.
+
+---
+class: middle
 
 ## Unit root tests
 
-\structure{Statistical tests to determine the required order of differencing.}
+>Statistical tests to determine the required order of differencing
 
-  1. Augmented Dickey Fuller test: null hypothesis is that the data are non-stationary and non-seasonal.
-  2. Kwiatkowski-Phillips-Schmidt-Shin (KPSS) test: null  hypothesis is that the data are stationary and non-seasonal.
-  3. Other tests available for seasonal data.
+1. Augmented Dickey Fuller test: null hypothesis is that the data are non-stationary and non-seasonal.
+2. Kwiatkowski-Phillips-Schmidt-Shin (KPSS) test: null  hypothesis is that the data are stationary and non-seasonal.
+3. Other tests available for seasonal data.
 
 ## KPSS test
 \fontsize{10}{11}\sf
@@ -485,8 +257,6 @@ interpretable.
 library(urca)
 summary(ur.kpss(ftse_m_ts))
 ```
-
-\pause
 
 
 ```{r, echo=TRUE}
@@ -510,339 +280,186 @@ carnival_eps_ts %>% log() %>% diff(lag=4) %>% ndiffs()
 ```
 
 
-## Backshift notation
-\small
-A  very useful notational device is the backward  shift operator,  $B$,  which is used as follows:
+---
+class: middle
 
-$${B y_{t}  =  y_{t - 1}}$$
-\pause
+## Non-seasonal ARIMA models
 
-In other  words, $B$, operating on $y_{t}$,has the effect of **shifting the data back one period**. 
-
-\pause
-
-Two applications of $B$ to$y_{t}$ **shifts the data back two periods**:
-$$B(By_{t})  =  B^{2}y_{t}  = y_{t-2}$$
-
-\pause
-
-For monthly data,if we wish to shift attention to  *the same  month last year,* then $B^{12}$ is used, and the notation is $B^{12}y_{t} = y_{t-12}$.
-
-## Backshift notation
-
-The backward shift operator is convenient for describing the process of *differencing*. 
-
-\pause
-
-A first difference can be written as:
-\vspace*{1cm}
-$$y'_{t}  = y_{t} - y_{t-1} = y_t - By_{t}  =  (1 - B)y_{t}$$
-\pause
-
-Note that a first difference is represented by$(1 - B)$.
-
-\pause
-
-Similarly, if second-order differences (i.e., first
-differences  of first differences) have to be computed, then:
-
-$$y''_{t} = y_{t} - 2y_{t - 1} +y_{t - 2} = (1 - B)^{2} y_{t}$$
-
-## Backshift notation
-\small
-* Second-order difference is denoted $(1- B)^{2}$.
-* *Second-order difference* is not the same as a *second difference*, which would be denoted $1- B^{2}$;
-* In general, a $d$th-order difference can be written as:
-
-$$(1 - B)^{d} y_{t}.$$
-
-* A seasonal difference followed by a first difference can be written as
-
-$$ (1-B)(1-B^m)y_t$$
-
-## Backshift notation
-
-The *backshift* notation is convenient because the terms can be multiplied together to see the combined effect.
-
-\begin{align*}
-(1-B)(1-B^m)y_t &= (1 - B - B^m + B^{m+1})y_t \\
-&= y_t-y_{t-1}-y_{t-m}+y_{t-m-1}
-\end{align*}
-
-\pause
-For monthly data, $m=12$ and we obtain the same result as earlier.
-
-# Non-seasonal ARIMA models
-
-## Autoregressive models
+#### Autoregressive models
 
 * When $y_t$ has a statistically significant lag-1 autocorrelation, the lagged value $y_{t-1}$ might be a useful in predicting $y_t$.
-
-\begin{block}{AR(1) models:}
+* AR(1) model
 $$ y_{t}= c+\phi_{1}y_{t - 1} + \varepsilon_{t},$$
-where $\varepsilon_t$ is white noise.  This is a simple linear regression with \textbf{lagged values} of $y_t$ as predictors.
-\end{block}
+where $\varepsilon_t$ is white noise.  This is a simple linear regression with **lagged values** of $y_t$ as predictors.
 
 * This simple model is widely used in stochastic volatility when $y_t$ is replaced by its log volatility.
 
+---
+class: middle
 
 ## Autoregressive models
-\small
+
 * More generally, if the  $E(y_{t-1})$ is determined by more than lag-1 we can generalise a AR(1) to an AR(p) model.
 
-\begin{block}{Autoregressive (AR) models:}
+.blocquote[
+Autoregressive (AR) models:
 $$ y_{t}= c+\phi_{1}y_{t - 1}+\phi_{2}y_{t - 2} + \cdots+\phi_{p}y_{t - p}  + \varepsilon_{t},$$
-where $\varepsilon_t$ is white noise.  This is a multiple linear regression with \textbf{lagged values} of $y_t$ as predictors.
-\end{block}
+where $\varepsilon_t$ is white noise.  This is a multiple linear regression with **lagged values** of $y_t$ as predictors.
+]
 
+---
+class: middle
 
-```{r arp, echo=FALSE, fig.height=2}
+# Example of an AR(1) model
+
+.panelset[
+.panel[
+.panel-name[Simulating an AR(1)]
+
+.pull-left[
+* Simulating an $y_{t} =2 -0.8 y_{t - 1}+\varepsilon_{t}$
+* where $\varepsilon_t\sim N(0,1)$ for  $T=100$.
+
+```{r arp, eval=FALSE}
 set.seed(1)
-p1 <- autoplot(10 + arima.sim(list(ar = -0.8), n = 100)) +
+autoplot(10 + arima.sim(list(ar = -0.8), n = 100)) +
   ylab("") + ggtitle("AR(1)")
-p2 <- autoplot(20 + arima.sim(list(ar = c(1.3, -0.7)), n = 100)) + ylab("") + ggtitle("AR(2)")
-gridExtra::grid.arrange(p1,p2,nrow=1)
 ```
+]
+.pull-right[
+```{r arp1, echo=FALSE, fig.height=2}
+set.seed(1)
+autoplot(10 + arima.sim(list(ar = -0.8), n = 100)) +
+  ylab("") + ggtitle("AR(1)")
 
-## AR(1) model
-
-\begin{block}{}
-\centerline{$y_{t} =2 -0.8 y_{t - 1}+\varepsilon_{t}$}
-\end{block}
-
-\rightline{$\varepsilon_t\sim N(0,1)$,\quad $T=100$.}
-
-```{r, echo=FALSE, out.width="50%", fig.height=2.2, fig.width=2.2}
-p1
 ```
+]
+]
 
-## AR(1) model
+.panel[
+.panel-name[Simulating an AR(2)]
 
-\begin{block}{}
-\centerline{$y_{t}=c + \phi_1 y_{t -1}+\varepsilon_{t}$}
-\end{block}
+.pull-left[
+* Simulating an $y_t = 8 + 1.3y_{t-1} - 0.7 y_{t-2} + \varepsilon_t$
+* where $\varepsilon_t\sim N(0,1)$ for  $T=100$.
 
+```{r arp3, eval=FALSE}
+set.seed(1)
+autoplot(20 + arima.sim(list(ar = c(1.3, -0.7)), n = 100)) + ylab("") + ggtitle("AR(2)")
+```
+]
+.pull-right[
+```{r arp4, echo=FALSE, fig.height=2}
+set.seed(1)
+autoplot(20 + arima.sim(list(ar = c(1.3, -0.7)), n = 100)) + ylab("") + ggtitle("AR(2)")
 
+```
+]
+]
+.panel[
+.panel-name[AR(1) models explained]
+>$y_{t}=c + \phi_1 y_{t -1}+\varepsilon_{t}$
 * When $\phi_1=0$, $y_t$ is **equivalent to White Noise**
 * When $\phi_1=1$ and $c=0$, $y_t$ is **equivalent to a Random Walk**
 * When $\phi_1=1$ and $c\ne0$, $y_t$ is **equivalent to a Random Walk with drift**
 * When $\phi_1<0$, $y_t$ tends to **oscillate between positive and negative values**.
 
-## Random walk with drift?
-\small
-\begin{block}{}
-\centerline{$y_t = 10 + 0.99y_{t-1}+ \varepsilon_t$}
-\end{block}
+]
+]
 
-```{r rw_drift, echo=T, out.width="60%",fig.align="center"}
-set.seed(1)
-autoplot(10 + arima.sim(list(ar =0.99), n = 100))  + ylab("") + 
-  ggtitle("Random Walk with Drift?")
-```
-
-
-## AR(2) model
-
-\begin{block}{}
-\centerline{$y_t = 8 + 1.3y_{t-1} - 0.7 y_{t-2} + \varepsilon_t$}
-\end{block}
-\rightline{$\varepsilon_t\sim N(0,1)$, \qquad $T=100$.}
-
-```{r, fig.height=2.2, fig.width=2.2, out.width="50%"}
-p2
-```
-
-
-## Stationarity conditions
-\small
-We normally restrict autoregressive models to stationary data, and then some constraints on the values of the parameters are required.
-
-\begin{block}{General condition for stationarity}
-Complex roots of $1-\phi_1 z - \phi_2 z^2 - \dots - \phi_pz^p$ lie outside the unit circle on the complex plane.
-\end{block}\pause
-
-* For $p=1$:  $-1<\phi_1<1$.
-* For $p=2$:\newline $-1<\phi_2<1\qquad \phi_2+\phi_1 < 1 \qquad \phi_2 -\phi_1 < 1$.
-* More complicated conditions hold for $p\ge3$.
-* Stop sweating!! estimation software takes care of this.
+---
+class: middle
 
 ## Moving Average (MA) models
 
-\begin{block}{Moving Average (MA) models:}
+.blockquote[
+#### Moving Average (MA) models:
 $$y_{t}  =  c +  \varepsilon_t + \theta_{1}\varepsilon_{t - 1}  +  \theta_{2}\varepsilon_{t - 2}  +  \cdots  + \theta_{q}\varepsilon_{t - q},$$
-where $\varepsilon_t$ is white noise.
-This is a multiple regression with  **past \emph{errors}** as predictors. \emph{Don't confuse this with moving average smoothing!}
-\end{block}
+- where $\varepsilon_t$ is white noise.
+- This is a multiple regression with  **past errors** as predictors. **Don't confuse this with moving average smoothing!**
+]
+
 
 ```{r maq, fig.height=2.5}
 set.seed(2)
-p1 <- autoplot(20 + arima.sim(list(ma = 0.8), n = 100)) +
-  ylab("") + ggtitle("MA(1)")
+p1<-autoplot(20 + arima.sim(list(ma = 0.8), n = 100)) +
+  ylab("") + ggtitle(TeX(r'(MA(2) model: $y_t = 20 + \epsilon_t + 0.8 \epsilon_{t-1} ... \epsilon_t \sim N(0,1)$)'))
 p2 <- autoplot(arima.sim(list(ma = c(-1, +0.8)), n = 100)) +
-  ylab("") + ggtitle("MA(2)")
-gridExtra::grid.arrange(p1,p2,nrow=1)
+  ylab("") + ggtitle(TeX(r"(MA(2) model:  $y_t = \epsilon_t -\epsilon_{t-1} + 0.8 \epsilon_{t-2} ... \epsilon_t \sim N(0,1)$)"))
+gridExtra::grid.arrange(p1,p2,ncol=1)
 ```
 
-## MA(1) model
 
-\begin{block}{}
-\centerline{$y_t = 20 + \varepsilon_t + 0.8 \varepsilon_{t-1}$}
-\end{block}
-\rightline{$\varepsilon_t\sim N(0,1)$,\quad $T=100$.}
+---
+class: middle
 
-```{r, fig.height=2.2, fig.width=2.2, out.width="50%"}
-p1
-```
+.hand-large[Putting it all together]
 
-## MA(2) model
+### ARIMA models
 
-\begin{block}{}
-\centerline{$y_t = \varepsilon_t -\varepsilon_{t-1} + 0.8 \varepsilon_{t-2}$}
-\end{block}
-\rightline{$\varepsilon_t\sim N(0,1)$,\quad $T=100$.}
+- Autoregressive Integrated Moving Average models
 
-```{r, fig.height=2.2, fig.width=2.2, out.width="50%"}
-p2
-```
-
-## MA($\infty$) models
-\small
-It is possible to write any stationary AR($p$) process as an MA($\infty$) process.
-
-**Example: AR(1)**
-
-\begin{align*}
-y_t &= \phi_1y_{t-1} + \varepsilon_t\\
-&= \phi_1(\phi_1y_{t-2} + \varepsilon_{t-1}) + \varepsilon_t\\
-&= \phi_1^2y_{t-2} + \phi_1 \varepsilon_{t-1} + \varepsilon_t\\
-&= \phi_1^3y_{t-3} + \phi_1^2\varepsilon_{t-2} + \phi_1 \varepsilon_{t-1} + \varepsilon_t\\
-&\dots
-\end{align*}
-
-\pause
-
-Provided $-1 < \phi_1 < 1$:
-$$y_t = \varepsilon_t + \phi_1 \varepsilon_{t-1} + \phi_1^2 \varepsilon_{t-2} + \phi_1^3 \varepsilon_{t-3} + \cdots$$
-
-## Invertibility
-
-* Any MA($q$) process can be written as an AR($\infty$) process if we impose some constraints on the MA parameters.
-* Then the MA model is called "invertible".
-* Invertible models have some mathematical properties that make them easier to use in practice.
-* Invertibility of an ARIMA model is equivalent to forecastability of an Exponential smoothing model (more on this next time).
-
-## Invertibility
-
-\begin{block}{General condition for invertibility}
-Complex roots of $1+\theta_1 z + \theta_2 z^2 + \dots + \theta_qz^q$ lie outside the unit circle on the complex plane.
-\end{block}
-
-\pause
-
-* For $q=1$:  $-1<\theta_1<1$.
-* For $q=2$:\newline $-1<\theta_2<1\qquad \theta_2+\theta_1 >-1 \qquad \theta_1 -\theta_2 < 1$.
-* More complicated conditions hold for $q\ge3$.
-* Estimation software takes care of this.
-
-
-## ARIMA models
-
-\begin{block}{Autoregressive Moving Average models:}
-
+.blockquote[
+Autoregressive Moving Average models
+$$$
 \begin{align*}
 y_{t} = c+ \phi_{1}y_{t - 1} +\cdots  +\phi_{p}y_{t-p} \\
  \theta_{1}\varepsilon_{t - 1} + \cdots +\theta_{q}\varepsilon_{t-q} +\varepsilon_{t}.
 \end{align*}
+$$$
+]
 
-\end{block}
-
-\pause
+--
 
 * Predictors include both **lagged values of $y_t$ and lagged errors.**
 * Conditions on coefficients ensure stationarity.
 * Conditions on coefficients ensure invertibility.
-
-\pause
-
-### Autoregressive Integrated Moving Average models
 * Combine ARMA model with **differencing**.
-* $(1-B)^d y_t$ follows an ARMA  model.
 
-## ARIMA models
+---
+class: middle 
 
-\structure{Autoregressive Integrated Moving Average models}
-\begin{block}{ARIMA($p, d, q$) model}
-\begin{tabular}{c c}
-AR:& $p =$  order of the autoregressive part \\
-I: & $d =$  degree of first differencing involved \\
-MA:& $q =$  order of the moving average part.
-\end{tabular}
-\end{block}
+## ARIMA models notation
 
+.pull-left[
+>Autoregressive Integrated Moving Average models
+- ARIMA(p, d, q) model
+- AR: p = order of the autoregressive part 
+- I: d = degree of first differencing involved
+- MA: q = order of the moving average part.
+
+]
+.pull-right[
 * White noise model:  ARIMA(0,0,0)
 * Random walk:  ARIMA(0,1,0) with no constant
-* Random walk with drift:  ARIMA(0,1,0) with \rlap{const.}
+* Random walk with drift:  ARIMA(0,1,0) with `constant term`
 * AR($p$): ARIMA($p$,0,0)
 * MA($q$): ARIMA(0,0,$q$)
-
-## Backshift notation for ARIMA
-
-* ARMA model:\vspace*{-1cm}\newline
-\parbox{12cm}{\small\begin{align*}
-\hspace*{-1cm} 
-y_{t}  &=  c + \phi_{1}By_{t} + \cdots + \phi_pB^py_{t}
-           +  \varepsilon_{t}  +  \theta_{1}B\varepsilon_{t} + \cdots + \theta_qB^q\varepsilon_{t} \\
-\hspace*{-1cm} 
-\text{or}\quad & (1-\phi_1B - \cdots - \phi_p B^p) y_t = c + (1 + \theta_1 B + \cdots + \theta_q B^q)\varepsilon_t
-\end{align*}}
+]
 
 * ARIMA(1,1,1) model:
-
-\[
-\begin{array}{c c c c}
-(1 - \phi_{1} B) & (1  -  B) y_{t} &= &c + (1  + \theta_{1} B) \varepsilon_{t}\\
-{\uparrow}  & {\uparrow}    &   &{\uparrow}\\
-{\text{AR(1)}} & {\text{First}}   &     &{\text{MA(1)}}\\
-& {\hbox to 0cm{\hss\text{difference}\hss}}\\
-\end{array}
-\]\pause
-Written out:
 $$y_t =   c + y_{t-1} + \phi_1 y_{t-1}- \phi_1 y_{t-2} + \theta_1\varepsilon_{t-1} + \varepsilon_t $$
 
-## R model
+---
+class: middle
 
-\fontsize{13}{16}\sf
 
-\begin{block}{Intercept form}
-\centerline{$(1-\phi_1B - \cdots - \phi_p B^p) y_t' = c + (1 + \theta_1 B + \cdots + \theta_q B^q)\varepsilon_t$}
-\end{block}
+## ARIMA modelling of macroeconomic time series
 
-\begin{block}{Mean form}
-\centerline{$(1-\phi_1B - \cdots - \phi_p B^p)(y_t' - \mu) = (1 + \theta_1 B + \cdots + \theta_q B^q)\varepsilon_t$}
-\end{block}
-
- * $y_t' = (1-B)^d y_t$ 
- * $\mu$ is the mean of $y_t'$. 
- * $c = \mu(1-\phi_1 - \cdots - \phi_p )$.
-
-## US personal consumption
-
+.panelset[
+.panel[
+.panel-name[The data]
 ```{r}
 autoplot(uschange[,"Consumption"]) +
   xlab("Year") +
   ylab("Quarterly percentage change") +
   ggtitle("US consumption")
 ```
-
-## US personal consumption
-\fontsize{10}{11}\sf
-
+.panel[
+.panel-name[fit an ARIMA(2,0,2)]
 ```{r, echo=TRUE}
-(fit <- arima(uschange[,"Consumption"],order = c(2,0,2)))
+((fit <- arima(uschange[,"Consumption"],order = c(2,0,2))))
 ```
-
-\pause\vfill
-
 
 ```{r usconsumptioncoefs, echo=FALSE}
 coef <- coefficients(fit)
@@ -854,27 +471,29 @@ ma2=round(coef['ma2'],3) %>% unname()
 sigma=round(sqrt(fit$sigma2),3) %>% unname()
 sigma2=round(fit$sigma2,3) %>% unname()
 ```
+]
+.panel[
+.panel-name[Model estimates in math]
 
+- $y_t = c + `r ar1`y_{t-1} `r ar2`y_{t-2}`r ma1` \varepsilon_{t-1}+ `r ma2`\varepsilon_{t-2}+ \varepsilon_{t}$
+- where $c= `r intercept`$
+- and $\varepsilon_t$ is white noise with a standard deviation of $`r sigma` = \sqrt{`r sigma2`}$. 
 
-### ARIMA(2,0,2) model:
-\centerline{$
-  y_t = c + `r ar1`y_{t-1} `r ar2`y_{t-2}`r ma1` \varepsilon_{t-1}+ `r ma2`\varepsilon_{t-2}+ \varepsilon_{t},
-$}
-where $c= `r intercept`$
-and $\varepsilon_t$ is white noise with a standard deviation of $`r sigma` = \sqrt{`r sigma2`}$. 
-
-
-## US personal consumption
-\fontsize{12}{15}\sf
+]
+.panel[
+.panel-name[Forecasts]
 
 ```{r, echo=TRUE, fig.height=4}
 fit %>% forecast(h=10) %>% autoplot(include=80)
 ```
+]
+]
 
+
+---
+class: middle
 
 ## Understanding ARIMA models
-\fontsize{12}{14}\sf
-
 * If $c=0$ and $d=0$, the long-term forecasts will go to zero.
 * If $c=0$ and $d=1$, the long-term forecasts will go to a non-zero constant.
 * If $c=0$ and $d=2$, the long-term forecasts will follow a straight line.
@@ -883,52 +502,49 @@ fit %>% forecast(h=10) %>% autoplot(include=80)
 * If $c\ne0$ and $d=1$, the long-term forecasts will follow a straight line.
 * If $c\ne0$ and $d=2$, the long-term forecasts will follow a quadratic trend.
 
+---
+class: middle
 
 ## Understanding ARIMA models
-\fontsize{10}{14}\sf
-
 ### Forecast variance and $d$
 
-  * The higher the value of $d$, the more rapidly the prediction intervals increase in size.
-  * For $d=0$, the long-term forecast standard deviation will go to the standard deviation of the historical data.
+* The higher the value of $d$, the more rapidly the prediction intervals increase in size.
+* For $d=0$, the long-term forecast standard deviation will go to the standard deviation of the historical data.
 
 ### Cyclic behaviour
-  * For cyclic forecasts,  $p\ge2$ and some restrictions on coefficients are required.
-  * If $p=2$, we need $\phi_1^2+4\phi_2<0$. Then average length of stochastic cycles is
-\[
-  (2\pi)/\left[\text{arc cos}(-\phi_1(1-\phi_2)/(4\phi_2))\right].
-\]
-  * This formula has important uses in estimation business and economic cycles. (See Example 2.3 in Tsay (2010))
+* For cyclic forecasts,  $p\ge2$ and some restrictions on coefficients are required.
+* If $p=2$, we need $\phi_1^2+4\phi_2<0$. Then average length of stochastic cycles is
+
+$$(2\pi)/\left[\text{arc cos}(-\phi_1(1-\phi_2)/(4\phi_2))\right].$$
+
+* This formula has important uses in estimation business and economic cycles. (See Example 2.3 in Tsay (2010))
+
+---
+class: middle
 
 # Estimation and order selection
 
 ## Maximum likelihood estimation
 
-Having identified the model order, we need to estimate the
-parameters $c$, $\phi_1,\dots,\phi_p$,
-$\theta_1,\dots,\theta_q$.\pause
+- Having identified the model order, we need to estimate the parameters $c$, $\phi_1,\dots,\phi_p$,$\theta_1,\dots,\theta_q$.
 
-
-* MLE is very similar to least squares estimation obtained by minimizing
-$$\sum_{t-1}^T e_t^2.$$
+* MLE is very similar to least squares estimation obtained by minimizing $\sum_{t-1}^T e_t^2$
 * The `Arima()` command allows CLS or MLE estimation.
 * Non-linear optimization must be used in either case.
 * Different software will give different estimates.
 
-## Partial autocorrelations
-\fontsize{10}{14}\sf
+---
+class: middle
 
-\structure{Partial autocorrelations} measure relationship\newline
-between $y_{t}$  and  $y_{t - k}$, when
-the effects of other time lags --- $1,
-2, 3, \dots, k - 1$ --- are removed.\pause
-\begin{block}{}
-\begin{align*}
-\alpha_k&= \text{$k$th partial autocorrelation coefficient}\\
-&= \text{equal to the estimate of $b_k$ in regression:}\\
-& \hspace*{0.8cm} y_t = c + \phi_1 y_{t-1} + \phi_2 y_{t-2} + \dots + \phi_k y_{t-k}.
-\end{align*}
-\end{block}\pause
+## Partial autocorrelations
+
+.blockquote[
+- Partial autocorrelations} measure relationship between $y_{t}$  and  $y_{t - k}$, when the effects of other time lags $1,2, 3, \dots, k - 1$are removed.
+
+- $\alpha_k$= $k$th partial autocorrelation coefficient
+- $\alpha_k${equal to the estimate of $b_k$ in regression:
+
+$$y_t = c + \phi_1 y_{t-1} + \phi_2 y_{t-2} + \dots + \phi_k y_{t-k}$$
 
 * Varying number of terms on RHS gives $\alpha_k$ for different values of $k$.
 * There are more efficient ways of calculating $\alpha_k$.
@@ -936,15 +552,8 @@ the effects of other time lags --- $1,
 * same critical values of $\pm 1.96/\sqrt{T}$ as for ACF.
 
 
-## Example: US consumption
-
-```{r}
-uschange[,"Consumption"] %>% diff() %>%
-  autoplot() +
-    xlab("Year") +
-    ylab("Quarterly percentage change") +
-    ggtitle("US consumption")
-```
+---
+class: middle
 
 ## Example: US consumption
 
@@ -955,19 +564,23 @@ p2 <- ggPacf(uschange[,"Consumption"],main="")
 gridExtra::grid.arrange(p1,p2,nrow=1)
 ```
 
+---
+class: middle
+
 ## ACF and PACF interpretation
 
 **AR(1)**
-\begin{align*}
-\hspace*{1cm}\rho_k &= \phi_1^k\qquad\text{for $k=1,2,\dots$};\\
-\alpha_1 &= \phi_1 \qquad\alpha_k = 0\qquad\text{for $k=2,3,\dots$}.
-\end{align*}
+$$rho_k =\phi_1^k \text{  for k=1,2,}\dots$$
+
+$$\alpha_1= \phi_1 \alpha_k = 0\text{for k=2,3}\dots$$
 
 So we have an AR(1) model when
 
-  * autocorrelations exponentially decay
-  * there is a single significant partial autocorrelation.
+* autocorrelations exponentially decay
+* there is a single significant partial autocorrelation.
 
+---
+class: middle
 
 ## ACF and PACF interpretation
 
@@ -1007,23 +620,9 @@ So we have an MA($q$) model when
   * the PACF is  exponentially decaying or sinusoidal
   * there is a significant spike at lag $q$ in ACF, but none beyond $q$
 
-<!-- ## Example: Mink trapping -->
 
-<!-- ```{r} -->
-<!-- autoplot(mink) + -->
-<!--   xlab("Year") + -->
-<!--   ylab("Minks trapped (thousands)") + -->
-<!--   ggtitle("Annual number of minks trapped") -->
-<!-- ``` -->
-
-<!-- ## Example: Mink trapping -->
-
-<!-- ```{r} -->
-<!-- p1 <- ggAcf(mink,main="") -->
-<!-- p2 <- ggPacf(mink,main="") -->
-<!-- gridExtra::grid.arrange(p1,p2,nrow=1) -->
-<!-- ``` -->
-
+---
+class: middle
 
 ## Information criteria
 
@@ -1040,4 +639,23 @@ $k=1$ if $c\ne0$ and $k=0$ if $c=0$.\pause\vspace*{0.2cm}
 \pause\vspace*{-0.2cm}
 \begin{block}{}Good models are obtained by minimizing either the AIC, \text{AICc}\ or BIC\@. My preference is to use the \text{AICc}.\end{block}
 
+
+
+---
+class: middle
+
+# Non-stationary times series model
+
+
+## Random walk with drift?
+\small
+\begin{block}{}
+\centerline{$y_t = 10 + 0.99y_{t-1}+ \varepsilon_t$}
+\end{block}
+
+```{r rw_drift, echo=T, out.width="60%",fig.align="center"}
+set.seed(1)
+autoplot(10 + arima.sim(list(ar =0.99), n = 100))  + ylab("") + 
+  ggtitle("Random Walk with Drift?")
+```
 
