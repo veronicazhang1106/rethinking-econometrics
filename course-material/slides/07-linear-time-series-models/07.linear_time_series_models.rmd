@@ -1,17 +1,17 @@
 ---
 title: "FIN7028: Times Series Financial Econometrics 7" 
-subtitle: "Some time series models"
+subtitle: "linear time series models"
 author: "Barry Quinn"
 date: "`r Sys.Date()`"
 output:
   xaringan::moon_reader:
+    
     includes:
       after_body: "../insert-logo.html"
-    self_contained: false
+    self_contained: true
     css: ["xaringan-themer.css","../slides-style.css"]
     lib_dir: libs
     nature:
-      self_contained: true
       countdown: 120000
       highlightStyle: github
       highlightLines: true
@@ -28,30 +28,30 @@ class: middle
 
 # Learning outcomes
 
-.large[
+.salt[
 - Stationary and differencing
 - Modelling stationary time series
 - ARIMA models (liner model)
-- Algorithms in Capital Markets
-- Generalised additive models (non-linear)
-- Predicting time series at scale: `Prophet` revisited
 ]
+
 ---
+
 class: middle
+
 # Stationarity and differencing
-
-* The foundation of statistical inference in time series analysis is the concept of weak stationarity.  A stationary series":
-
+.acid[
+* The foundation of statistical inference in time series analysis is the concept of weak stationarity. ] 
+.hand[A stationary series:
 *  roughly horizontal
 *  constant variance
 *  no patterns predictable in the long-term
-
+]
 ---
 class: middle
 
 .your-turn[
 
-Is these financial time series stationary?
+Are these financial time series stationary?
 .pull-left[
 ```{r}
 tsfe::indices %>%
@@ -100,152 +100,165 @@ class: middle
 * If the timespan is divided into subperiods the sample mean and variance for each period show increasing pattern.
 * Earnings are **not** weakly stationary.
 * There does exist models and methods for modelling such nonstationary series.
-* 
-## Your turn: Stationary?
+
+---
+class: middle
+
+.your-turn[
+Is the VIX time series Stationary?
 
 ```{r}
 tq_get('^VIX') %>%
   ggplot(aes(x=date,y=adjusted)) + 
   ylab("VIX") + geom_line()
 ```
-
+]
 ---
 class: middle
 
 ## Non-stationarity in the mean
 
-\structure{Identifying non-stationary series}
+.hand[Identifying non-stationary series]
 
+.large[
 * time plot.
-
 * The ACF of stationary data drops to zero relatively quickly
 * The ACF of non-stationary data decreases slowly.
 * For non-stationary data, the value of $r_1$ is often
      large and positive.
-
-## Example: FTSE index
-
-```{r}
-autoplot(ftse_m_ts) + ylab("Monthly Price Index") + xlab("Year")
-```
-
-## Example: FTSE index
-
-```{r}
-ggAcf(ftse_m_ts)
-```
-
-## Example: FTSE index
-
-```{r}
-autoplot(diff(ftse_m_ts)) + ylab("Change in monthly FTSE Index") + xlab("Year")
-```
-
-## Example: FTSE index
-
-```{r}
-ggAcf(diff(ftse_m_ts))
-```
+]
 
 ---
 class: middle
 
-## Differencing
+## Example: FTSE index
 
+.panelset[
+.panel[
+.panel-name[time plot]
+```{r}
+autoplot(ftse_m_ts) + ylab("Monthly Price Index") + xlab("Year")
+```
+]
+
+.panel[
+.panel-name[ACF]
+```{r}
+ggAcf(ftse_m_ts)
+```
+]
+
+.panel[
+.panel-name[First differencing]
+```{r}
+autoplot(diff(ftse_m_ts)) + ylab("Change in monthly FTSE Index") + xlab("Year")
+```
+]
+.panel[
+.panel-name[ACF after first differencing]
+```{r}
+ggAcf(diff(ftse_m_ts))
+```
+]
+]
+
+---
+class: middle
+
+# Differencing
+.fat[
 * Differencing helps to **stabilize the mean**.
 * The differenced series is the *change* between each observation in the original series: ${y'_t = y_t - y_{t-1}}$.
 * The differenced series will have only $T-1$ values since it is not possible to calculate a difference $y_1'$ for the first observation.
-
+]
 ---
 class: middle
 
 ## carnival earnings ending 2010 Q1
-```{r carnival1, fig.height=4}
+.panelset[
+.panel[
+.panel-name[subset using `window()`]
+```{r carnival1}
 window(carnival_eps_ts,end=c(2010,1)) %>% autoplot()
 ```
-
-## log Carnival earnings
-```{r carnival2, fig.height=4}
+]
+.panel[
+.panel-name[use `log()` to stablise variation]
+```{r carnival2} 
 window(carnival_eps_ts,end=c(2010,1)) %>% log() %>% autoplot()
 ```
-
-## log Carnival earnings seasonally differenced
-
-
-```{r carnival3, echo=TRUE, out.height="60%"}
+]
+.panel[
+.panel-name[**then** seasonally difference]
+```{r carnival3}
 window(carnival_eps_ts,end=c(2010,1)) %>% 
   log() %>% diff(lag=4) %>%  autoplot()
 ```
+]
+.panel[
+.panel-name[**then** first difference]
+.hand[Is the series stationary?]
 
-## l log carnival earnings differenced twice
-```{r carnival4, echo=T, out.height="60%"}
+```{r carnival4}
 window(carnival_eps_ts,end=c(2010,1)) %>% log() %>% diff(lag=4) %>% diff(lag=1) %>% autoplot()
 ```
+
+]
+]
 
 ---
 class: middle
 
-## Carnival earnings
+.discussion[
 
 * Seasonally differenced series is closer to being stationary.
 * Remaining non-stationarity can be removed with further first difference.
-
-If $y'_t = y_t - y_{t-12}$ denotes seasonally differenced series, then twice-differenced series i
-
-#### Seasonal differencing
-
-When both seasonal and first differences are applied\dots\pause
-
+* If $y'_t = y_t - y_{t-12}$ denotes seasonally differenced series, then twice-differenced series i
+* When both seasonal and first differences are applied
 * it makes no difference which is done first the result will be the same.
 * If seasonality is strong, we recommend that seasonal differencing be done first because sometimes the resulting series will be stationary and there will be no need for further first difference.
-
 * It is important that if differencing is used, the differences are
 interpretable.
+]
 
 ---
 class: middle
 
 ## Interpretation of differencing
-
+.heat[
 * first differences are the change between **one observation and the next**;
 * seasonal differences are the change between **one year to the next**.
 
 * But taking lag 3 differences for yearly data, for example, results in a model which cannot be sensibly interpreted.
-
+]
 ---
 class: middle
 
 ## Unit root tests
-
+.pull-left[
 >Statistical tests to determine the required order of differencing
 
 1. Augmented Dickey Fuller test: null hypothesis is that the data are non-stationary and non-seasonal.
 2. Kwiatkowski-Phillips-Schmidt-Shin (KPSS) test: null  hypothesis is that the data are stationary and non-seasonal.
 3. Other tests available for seasonal data.
+]
+.pull-right[
 
 ## KPSS test
-\fontsize{10}{11}\sf
-
 ```{r, echo=TRUE}
 library(urca)
 summary(ur.kpss(ftse_m_ts))
 ```
 
-
-```{r, echo=TRUE}
-ndiffs(ftse_m_ts)
-```
-
+]
+---
+class: middle
 
 ## Automatically selecting differences
-
-STL decomposition: $y_t = T_t+S_t+R_t$
 
 Seasonal strength $F_s = \max\big(0, 1-\frac{\text{Var}(R_t)}{\text{Var}(S_t+R_t)}\big)$
 
 If $F_s > 0.64$, do one seasonal difference.
-
-\pause\fontsize{10}{15}\sf\vspace*{1cm}
 
 ```{r, echo=TRUE}
 carnival_eps_ts %>% log() %>% nsdiffs()
@@ -262,8 +275,11 @@ class: middle
 
 * When $y_t$ has a statistically significant lag-1 autocorrelation, the lagged value $y_{t-1}$ might be a useful in predicting $y_t$.
 * AR(1) model
-$$ y_{t}= c+\phi_{1}y_{t - 1} + \varepsilon_{t},$$
-where $\varepsilon_t$ is white noise.  This is a simple linear regression with **lagged values** of $y_t$ as predictors.
+
+$$y_{t}= c+\phi_{1}y_{t - 1} + \varepsilon_{t}$$
+
+* where $\varepsilon_t$ is white noise.  
+* This is a simple linear regression with **lagged values** of $y_t$ as predictors.
 
 * This simple model is widely used in stochastic volatility when $y_t$ is replaced by its log volatility.
 
@@ -274,9 +290,9 @@ class: middle
 
 * More generally, if the  $E(y_{t-1})$ is determined by more than lag-1 we can generalise a AR(1) to an AR(p) model.
 
-.blocquote[
+.blockquote[
 Autoregressive (AR) models:
-$$ y_{t}= c+\phi_{1}y_{t - 1}+\phi_{2}y_{t - 2} + \cdots+\phi_{p}y_{t - p}  + \varepsilon_{t},$$
+$$y_{t}= c+\phi_{1}y_{t - 1}+\phi_{2}y_{t - 2} + \dots +\phi_{p}y_{t - p}  + \varepsilon_{t},$$
 where $\varepsilon_t$ is white noise.  This is a multiple linear regression with **lagged values** of $y_t$ as predictors.
 ]
 
@@ -345,23 +361,20 @@ class: middle
 
 ## Moving Average (MA) models
 
-.blockquote[
+.blockquote.medium[
 #### Moving Average (MA) models:
 $$y_{t}  =  c +  \varepsilon_t + \theta_{1}\varepsilon_{t - 1}  +  \theta_{2}\varepsilon_{t - 2}  +  \cdots  + \theta_{q}\varepsilon_{t - q},$$
 - where $\varepsilon_t$ is white noise.
 - This is a multiple regression with  **past errors** as predictors. **Don't confuse this with moving average smoothing!**
 ]
-
-
-```{r maq, fig.height=2.5}
+```{r maq}
 set.seed(2)
 p1<-autoplot(20 + arima.sim(list(ma = 0.8), n = 100)) +
   ylab("") + ggtitle(TeX(r'(MA(2) model: $y_t = 20 + \epsilon_t + 0.8 \epsilon_{t-1} ... \epsilon_t \sim N(0,1)$)'))
 p2 <- autoplot(arima.sim(list(ma = c(-1, +0.8)), n = 100)) +
   ylab("") + ggtitle(TeX(r"(MA(2) model:  $y_t = \epsilon_t -\epsilon_{t-1} + 0.8 \epsilon_{t-2} ... \epsilon_t \sim N(0,1)$)"))
-gridExtra::grid.arrange(p1,p2,ncol=1)
+gridExtra::grid.arrange(p1,p2,nrow=1)
 ```
-
 
 ---
 class: middle
@@ -374,12 +387,12 @@ class: middle
 
 .blockquote[
 Autoregressive Moving Average models
-$$$
+$$
 \begin{align*}
 y_{t} = c+ \phi_{1}y_{t - 1} +\cdots  +\phi_{p}y_{t-p} \\
  \theta_{1}\varepsilon_{t - 1} + \cdots +\theta_{q}\varepsilon_{t-q} +\varepsilon_{t}.
 \end{align*}
-$$$
+$$
 ]
 
 --
@@ -406,18 +419,17 @@ class: middle
 * White noise model:  ARIMA(0,0,0)
 * Random walk:  ARIMA(0,1,0) with no constant
 * Random walk with drift:  ARIMA(0,1,0) with `constant term`
-* AR($p$): ARIMA($p$,0,0)
-* MA($q$): ARIMA(0,0,$q$)
+* AR(p): ARIMA(p,0,0)
+* MA(q): ARIMA(0,0,q)
 ]
 
 * ARIMA(1,1,1) model:
-$$y_t =   c + y_{t-1} + \phi_1 y_{t-1}- \phi_1 y_{t-2} + \theta_1\varepsilon_{t-1} + \varepsilon_t $$
+$$y_t =c + y_{t-1} + \phi_1 y_{t-1}- \phi_1 y_{t-2} +\theta_1\varepsilon_{t-1} + \varepsilon_t$$
 
 ---
 class: middle
 
-
-## ARIMA modelling of macroeconomic time series
+## ARIMA modelling of US consumption
 
 .panelset[
 .panel[
@@ -428,6 +440,7 @@ autoplot(uschange[,"Consumption"]) +
   ylab("Quarterly percentage change") +
   ggtitle("US consumption")
 ```
+]
 .panel[
 .panel-name[fit an ARIMA(2,0,2)]
 ```{r, echo=TRUE}
@@ -456,25 +469,23 @@ sigma2=round(fit$sigma2,3) %>% unname()
 .panel[
 .panel-name[Forecasts]
 
-```{r, echo=TRUE, fig.height=4}
+```{r, echo=TRUE}
 fit %>% forecast(h=10) %>% autoplot(include=80)
 ```
 ]
 ]
 
-
 ---
 class: middle
-
 ## Understanding ARIMA models
+.large[
 * If $c=0$ and $d=0$, the long-term forecasts will go to zero.
 * If $c=0$ and $d=1$, the long-term forecasts will go to a non-zero constant.
 * If $c=0$ and $d=2$, the long-term forecasts will follow a straight line.
-
 * If $c\ne0$ and $d=0$, the long-term forecasts will go to the mean of the data.
 * If $c\ne0$ and $d=1$, the long-term forecasts will follow a straight line.
 * If $c\ne0$ and $d=2$, the long-term forecasts will follow a quadratic trend.
-
+]
 ---
 class: middle
 
@@ -523,13 +534,12 @@ $$y_t = c + \phi_1 y_{t-1} + \phi_2 y_{t-2} + \dots + \phi_k y_{t-k}$$
 * There are more efficient ways of calculating $\alpha_k$.
 * $\alpha_1=\rho_1$
 * same critical values of $\pm 1.96/\sqrt{T}$ as for ACF.
-
+]
 
 ---
 class: middle
 
 ## Example: US consumption
-
 
 ```{r usconsumptionacf}
 p1 <- ggAcf(uschange[,"Consumption"],main="")
@@ -556,237 +566,113 @@ So we have an AR(1) model when
 class: middle
 
 ## ACF and PACF interpretation
-
-
-**AR($p$)**
-
+.three-column[
+**AR(p)**
   * ACF dies out in an exponential or damped sine-wave manner
   * PACF has all zero spikes beyond the $p$th spike
 
-So we have an AR($p$) model when
+So we have an AR(p)) model when
 
   * the ACF is  exponentially decaying or sinusoidal
   * there is a significant spike at lag $p$ in PACF, but none beyond $p$
+]
 
-## ACF and PACF interpretation
-
+.three-column[
 **MA(1)**
+$$
 \begin{align*}
-\hspace*{1cm}\rho_1 &= \theta_1\qquad \rho_k = 0\qquad\text{for $k=2,3,\dots$};\\
+\rho_1 &= \theta_1 \qquad \rho_k = 0\qquad\text{for k=2,3,...};\\
 \alpha_k &= -(-\theta_1)^k
 \end{align*}
-
+$$
 So we have an MA(1) model when
-
  * the PACF is  exponentially decaying and
  * there is a single significant spike in ACF
-
-## ACF and PACF interpretation
-
-**MA($q$)**
+]
+.three-column[
+**MA(q)**
 
  * PACF dies out in an exponential or damped sine-wave manner
  * ACF has all zero spikes beyond the $q$th spike
 
-So we have an MA($q$) model when
+So we have an MA(q) model when
 
   * the PACF is  exponentially decaying or sinusoidal
   * there is a significant spike at lag $q$ in ACF, but none beyond $q$
-
+]
 
 ---
 class: middle
 
 ## Information criteria
 
-\structure{Akaike's Information Criterion (AIC):}
-\centerline{$\text{AIC} = -2 \log(L) + 2(p+q+k+1),$}
-where $L$ is the likelihood of the data,\newline
-$k=1$ if $c\ne0$ and $k=0$ if $c=0$.\pause\vspace*{0.2cm}
-
-\structure{Corrected AIC:}
-\centerline{$\text{AICc} = \text{AIC} + \frac{2(p+q+k+1)(p+q+k+2)}{T-p-q-k-2}.$}\pause\vspace*{0.2cm}
-
-\structure{Bayesian Information Criterion:}
-\centerline{$\text{BIC} = \text{AIC} + [\log(T)-2](p+q+k-1).$}
-\pause\vspace*{-0.2cm}
-\begin{block}{}Good models are obtained by minimizing either the AIC, \text{AICc}\ or BIC\@. My preference is to use the \text{AICc}.\end{block}
-
-
-
----
-class: middle
-
-# Non-stationary times series model
-
-## Random walk with drift?
-\small
-\begin{block}{}
-\centerline{$y_t = 10 + 0.99y_{t-1}+ \varepsilon_t$}
-\end{block}
-
-```{r rw_drift, echo=T, out.width="60%",fig.align="center"}
-set.seed(1)
-autoplot(10 + arima.sim(list(ar =0.99), n = 100))  + ylab("") + 
-  ggtitle("Random Walk with Drift?")
-```
-
-
----
-class: middle
-
-# Algorithms in Capital Markets
-
-- Three categories
-  - Computational Statistics
-  - AI Algorithms
-  - Complex Systems
-- We will consider on version of computational statistics
-
----
-class: middle
-
-.huge-text[Prophet algorithm]
-
----
-class: middle
-
-# What is Prophet?
-
->Prophet is a procedure for forecasting time series data based on an additive model where non-linear trends are fit with yearly, weekly, and daily seasonality, plus holiday effects.
-
-.acid[
-- It works best with time series that have strong seasonal effects and several seasons of historical data. 
-- Prophet is robust to missing data and shifts in the trend, and typically handles outliers well.
-- It is based on a family **computational statistics** algorithms know as **generalised additive models** ]
-
----
-class: middle
-
-# How does it work? 
-
-- The procedure makes use of a decomposable time series model with three main model components: .heatinline[trend, seasonality, and holidays.]
-
-- Similar to a generalized additive model (GAM), with time as a predictor, Prophet fits several linear and non-linear functions of time as components. I
-n its simplest form;
 .blockquote[
+**Akaike's Information Criterion (AIC):**
 
-$$y(t) = g(t) + s(t) + h(t) + e(t)$$
-- where $g(t)$ trend models non-periodic changes (i.e. growth over time)
-- $s(t)$ seasonality presents periodic changes (i.e. weekly, monthly, yearly)
-- $h(t)$ ties in effects of holidays (on potentially irregular schedules ≥ 1 day(s))
-- e(t) covers idiosyncratic changes not accommodated by the model
+$\text{AIC} = -2 \log(L) + 2(p+q+k+1),$  where $L$ is the likelihood of the data, $k=1$ if $c\ne0$ and $k=0$ if $c=0$]
+
+.blockquote[
+**Corrected AIC:** <br>
+$\text{AICc} = \text{AIC} + \frac{2(p+q+k+1)(p+q+k+2)}{T-p-q-k-2}.$
 ]
 
----
-class: middle
+.blockquote[
+**Bayesian Information Criterion:**<br>
+$\text{BIC} = \text{AIC} + [\log(T)-2](p+q+k-1).$<br>
+Good models are obtained by minimizing either the AIC, AICc or BIC. My preference is to use the AICc.]
 
-In other words, the procedure’s equation can be written;
-
-Modeling seasonality as an additive component is the same approach taken by exponential smoothing… GAM formulation has the advantage that it decomposes easily and accommodates new components as necessary, for instance when a new source of seasonality is identified.
-Prophet is essentially “framing the forecasting problem as a curve-fitting exercise” rather than looking explicitly at the time based dependence of each observation.
 
 ---
 class: middle
 
-# Trend
-The procedure provides two possible trend models for g(t), “a saturating growth model, and a piecewise linear model.”
-3.1) Saturating Growth Model
-If the data suggests promise of saturation — i.e. one is wrestling constraints like: cubed footage, processing power, number of people w/ Internet access— setting growth='logistic' is the move.
-Typical modeling of these nonlinear, saturating trends is basically accomplished;
+# Powerful non-stationary model in finance
 
-where:
-C is the carrying capacity
-k is the growth rate
-m is an offset parameter
-There are two primary aspects of growth at Facebook (fluctuating carrying capacity and volatile rate of change) that are not captured in this simplified equation, though.
-Carrying Capacity v. Time
-First, as with many scalable business models carrying capacity is not constant — as “the number of people in the world who have access to the Internet increases, so does the growth ceiling.”
-Accounting for this is done by replacing the fixed capacity C with a time-varying capacity C(t).
-Rate of Change v. Time
-Second, the market does not allow for stagnant technology. Advances like those seen over the past decade in handheld devices, app development, and global connectivity, virtually ensure that growth rate is not constant.
-Because this rate can quickly compound due to new products, the model must be able to incorporate a varying rate in order to fit historical data.
-We incorporate trend changes in the growth model by explicitly defining changepoints where the growth rate is allowed to change.
-Suppose there are S changepoints at times sj, j = 1,…,S.
-Prophet defines a vector of rate adjustments;
+- In financial time series an important class on non-stationary times series model is the random walk model
+- A random walk can be define as $y_t=y_{t-1}+ error_t$ or its drift variation $y_t= constant + y_{t-1}+ error_t$
 
-where:
-δj is the change in rate that occurs at time sj
-The rate at any time t is then the base rate k, plus adjustments up to that time;
+.panelset[
+.panel[
+.panel-name[Simulation 1]
+.pull-left-narrow[
+$y_t = 10 + 0.99y_{t-1}+ \varepsilon_t$
+```{r rw_drift1, eval=FALSE}
+set.seed(1)
+autoplot(10 + arima.sim(list(ar =0.99), n = 100))  + ylab("") + 
+  ggtitle("Is this a random walk with drift?")
+```
+]
+.pull-right-wide[
+```{r rw_drift2, echo=FALSE}
+set.seed(1)
+autoplot(10 + arima.sim(list(ar =0.99), n = 100))  + ylab("") + 
+  ggtitle("Is this a random walk with drift?")
+```
+]
+]
+.panel[
+.panel-name[Simulation 1]
+.pull-left-narrow[
+```{r rw_drift3,eval=FALSE}
+set.seed(2)
+S0=10
+n=100
+chgs=rnorm(n-1,1.001,0.01)
+rw=ts(cumprod(c(S0,chgs)))
+autoplot(rw)  + ylab("") + 
+  ggtitle("Is this a random walk with drift?")
+```
+]
+.pull-right-wide[
+```{r rw_drift4,echo=FALSE}
+set.seed(2)
+S0=10
+n=100
+chgs=rnorm(n-1,1.001,0.01)
+rw=ts(cumprod(c(S0,chgs)))
+autoplot(rw)  + ylab("") + 
+  ggtitle("Is this a random walk with drift?")
+```
 
-This is represented more cleanly by defining a vector;
-
-such that;
-
-The rate at time t is then k+a(t)ᵀδ. When the rate k is adjusted, the offset parameter m must also be adjusted to connect the endpoints of the segments. The correct adjustment at changepoint j is easily computed as;
-
-At last, the piecewise growth=‘logistic’ model is reached;
-
-An important set of parameters in our model is C(t), or the expected capacities of the system at any point in time. Analysts often have insight into market sizes and can set these accordingly. There may also be external data sources that can provide carrying capacities,such as population forecasts from the World Bank.
-In application, the logistic growth model presented here is a special case of generalized logistic growth curves — which is only a single type of sigmoid curve — allowing the relatively straightforward extension(s) of this trend model to other families of curves.
-3.2) Linear Trend with Changepoints
-The second — much simpler and default — trend model is a simple Piecewise Linear Model with a constant rate of growth.
-It is best suited for problems without a market cap or other max in sight, and is set via growth='linear'.
-For forecasting problems that do not exhibit saturating growth, a piece-wise constant rate of growth provides a parsimonious and often useful model.
-Modeling the linear trend is easily realized with Prophet. In fact, not adjusting anything usually does the trick;
-
-where:
-k is the growth rate
-δ has the rate adjustments
-m is the offset parameter
-and, to make the function continuous, γj is set to:
-
-3.3) Automatic Changepoint Selection
-If known, the changepoints sj can be specified by the user as dates of product launches and other growth-altering events, or, by default, changepoints may be automatically selected given a set of candidates.
-Automatic selection can be done quite naturally with the formulation in either model by putting a sparse prior on δ.
-Often, it is advisable to specify a large number of changepoints (e.g. one per month for a several year history) and use the prior:
-
-where:
-τ directly controls the flexibility of the model in altering its rate
-Critical note: a sparse prior on the adjustments δ has no impact on the primary growth rate k, so as τ progresses to 0 the fit reduces to standard (not-piecewise) logistic or linear growth.
-3.4) Trend Forecast Uncertainty
-When the model is extrapolated past the history to make a forecast, the trend g(t) will have a constant rate; the uncertainty in the forecast trend is estimated by extending the generative model forward.
-The generative model for the trend is that there are;
-S changepoints
-over a history of T points
-each of which has a rate change δj∼Laplace(0,τ)
-Simulation of future rate changes (that emulate those of the past) is achieved by replacing τ with a variance inferred from data.
-In a fully Bayesian framework this could be done with a hierarchical prior on τ to obtain its posterior, otherwise we can use the maximum likelihood estimate of the rate scale parameter:
-
-Future changepoints are randomly sampled in such a way that the average frequency of changepoints matches that in the history:
-
-Thus, uncertainty in the forecast trend is measured by assuming the future will see the same average frequency and magnitude of rate changes that were seen in the history. Once λ has been inferred from the data, this generative model is deployed to “simulate possible future trends and use the simulated trends to compute uncertainty intervals.”
-Prophet’s assumption that the trend will continue to change with the same frequency and magnitude as it has in the history is fairly strong, so don’t bank on the uncertainty intervals having exact coverage.
-As τ is increased the model has more flexibility in fitting the history and so training error will drop. Even so, when projected forward this flexibility is prone to produce wide intervals. The uncertainty intervals are, however, a useful indication of the level of uncertainty, and especially an indicator of over fitting.
-4) Seasonality
-The seasonal component s(t) provides a adaptability to the model by allowing periodic changes based on sub-daily, daily, weekly and yearly seasonality.
-Business time series often have multi-period seasonality as a result of the human behaviors they represent. For instance, a 5-day work week can produce effects on a time series that repeat each week, while vacation schedules and school breaks can produce effects that repeat each year. To fit and forecast these effects we must specify seasonality models that are periodic functions of [time] t.
-Prophet relies on Fourier series to provide a malleable model of periodic effects. P is the regular period the time series will have (e.g. P = 365.25 for yearly data or P = 7 for weekly data, when time is scaled in days).
-Approximate arbitrary smooth seasonal effects is therefore tied in with a standard Fourier series;
-
-Fitting seasonality requires estimating the 2N parameters β=[a1,b1,…,aN,bN]ᵀ. This is done by constructing a matrix of seasonality vectors for each value of t in our historical and future data, for example with yearly seasonality and N= 10:
-
-Meaning the seasonal component is;
-
-In the generative model, Prophet takes β∼Normal(0,σ²) to impose a smoothing prior on the seasonality.
-Truncating the series at N applies a low-pass filter to the seasonality, so, albeit with increased risk of overfitting, increasing N allows for fitting seasonal patterns that change more quickly.
-For yearly and weekly seasonality we have found N = 10 and N = 3 respectively to work well for most problems. The choice of these parameters could be automated using a model selection procedure such as AIC.
-5) Holidays and Events
-Impact of a particular holiday on the time series is often similar year after year, making it an important incorporation into the forecast. The component h(t) speaks for predictable events of the year including those on irregular schedules (e.g. Black Friday or the Superbowl).
-To utilize this feature, the user needs to provide a custom list of events. Fusing this list of holidays into the model is made straightforward by assuming that the effects of holidays are independent.
-
-* not tied to one country
-For each holiday i, let Di be the set of past and future dates for that holiday. Then add an indicator function representing whether time t is during holiday i, and assign each holiday a parameter κi which is the corresponding change in the forecast.
-This is done in a similar way as seasonality by generating a matrix of regressors;
-
-and taking,
-
-As with seasonality, Prophet uses a prior κ∼Normal(0,ν²).
-It is often important to include effects for a window of days around a particular holiday, such as the weekend of Thanksgiving. To account for that we include additional parameters for the days surrounding the holiday, essentially treating each of the days in the window around the holiday as a holiday itself.
-Conclusion
-Ultimately, Prophet was engineered to help analysts with a variety of backgrounds produce more forecasts with less time invested towards doing so. This was achieved by sticking to a relatively plain model.
-After all, “Introduction to Time Series and Forecasting (Springer Texts in Statistics) 3rd ed. 2016 Edition” is 425 pages in length, the “Forecasting at Scale” Prophet paper is 25 pages, and you’ve read this Story in about 10 minutes.
-We use a simple, modular regression model that often works well with default parameters, and that allows analysts to select the components that are relevant to their forecasting problem and easily make adjustments as needed.
-
-References
-Taylor SJ, Letham B. 2017. Forecasting at scale. PeerJ Preprints 5:e3190v2 https://doi.org/10.7287/peerj.preprints.3190v2
+]
+]
+]

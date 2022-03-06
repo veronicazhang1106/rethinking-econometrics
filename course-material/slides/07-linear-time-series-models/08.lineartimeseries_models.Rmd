@@ -370,7 +370,7 @@ where $v_{T+h|T}$ is estimated forecast variance.
 \centerline{$\displaystyle y_t = \varepsilon_t + \sum_{i=1}^q \theta_i \varepsilon_{t-i}$}
 \centerline{$\displaystyle v_{T|T+h} = \hat{\sigma}^2 \left[ 1 + \sum_{i=1}^{h-1} \theta_i^2\right], \qquad\text{for~} h=2,3,\dots.$}
 
-## Prediction intervals
+## Frequentist prediction intervals
 
 \begin{block}{95\% Prediction interval}
 $$\hat{y}_{T+h|T} \pm 1.96\sqrt{v_{T+h|T}}$$
