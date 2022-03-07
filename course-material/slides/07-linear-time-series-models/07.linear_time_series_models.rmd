@@ -5,10 +5,8 @@ author: "Barry Quinn"
 date: "`r Sys.Date()`"
 output:
   xaringan::moon_reader:
-    
     includes:
       after_body: "../insert-logo.html"
-    self_contained: true
     css: ["xaringan-themer.css","../slides-style.css"]
     lib_dir: libs
     nature:
@@ -19,6 +17,7 @@ output:
       ratio: "16:9"
       beforeInit: "https://platform.twitter.com/widgets.js"
     seal: true
+    self_contained: true
 ---
 
 ```{r child = "../setup.Rmd"}
@@ -347,12 +346,13 @@ autoplot(20 + arima.sim(list(ar = c(1.3, -0.7)), n = 100)) + ylab("") + ggtitle(
 ]
 .panel[
 .panel-name[AR(1) models explained]
->$y_{t}=c + \phi_1 y_{t -1}+\varepsilon_{t}$
+.blockquote[
+$$y_{t}=c + \phi_1 y_{t -1}+\varepsilon_{t}$$
 * When $\phi_1=0$, $y_t$ is **equivalent to White Noise**
 * When $\phi_1=1$ and $c=0$, $y_t$ is **equivalent to a Random Walk**
 * When $\phi_1=1$ and $c\ne0$, $y_t$ is **equivalent to a Random Walk with drift**
 * When $\phi_1<0$, $y_t$ tends to **oscillate between positive and negative values**.
-
+]
 ]
 ]
 
@@ -361,12 +361,14 @@ class: middle
 
 ## Moving Average (MA) models
 
-.blockquote.medium[
-#### Moving Average (MA) models:
-$$y_{t}  =  c +  \varepsilon_t + \theta_{1}\varepsilon_{t - 1}  +  \theta_{2}\varepsilon_{t - 2}  +  \cdots  + \theta_{q}\varepsilon_{t - q},$$
+.blockquote.midi[
+
+Moving Average (MA) models:
+$$y_{t} =c +\varepsilon_t + \theta_{1}\varepsilon_{t - 1} + \theta_{2}\varepsilon_{t - 2} +\cdots+\theta_{q}\varepsilon_{t - q},$$
 - where $\varepsilon_t$ is white noise.
 - This is a multiple regression with  **past errors** as predictors. **Don't confuse this with moving average smoothing!**
 ]
+
 ```{r maq}
 set.seed(2)
 p1<-autoplot(20 + arima.sim(list(ma = 0.8), n = 100)) +
@@ -410,9 +412,12 @@ class: middle
 .pull-left[
 >Autoregressive Integrated Moving Average models
 - ARIMA(p, d, q) model
-- AR: p = order of the autoregressive part 
-- I: d = degree of first differencing involved
-- MA: q = order of the moving average part.
+- AR part: p = order of the autoregressive part 
+- I part: d = degree of first differencing involved
+- MA part: q = order of the moving average part.
+
+- ARIMA(1,1,1) model:
+$$(y_t-y_{t-1}) =c + \phi_1 (y_{t-1}- y_{t-2}) +\theta_1\varepsilon_{t-1} + \varepsilon_t$$
 
 ]
 .pull-right[
@@ -423,8 +428,6 @@ class: middle
 * MA(q): ARIMA(0,0,q)
 ]
 
-* ARIMA(1,1,1) model:
-$$y_t =c + y_{t-1} + \phi_1 y_{t-1}- \phi_1 y_{t-2} +\theta_1\varepsilon_{t-1} + \varepsilon_t$$
 
 ---
 class: middle
@@ -477,7 +480,9 @@ fit %>% forecast(h=10) %>% autoplot(include=80)
 
 ---
 class: middle
+
 ## Understanding ARIMA models
+
 .large[
 * If $c=0$ and $d=0$, the long-term forecasts will go to zero.
 * If $c=0$ and $d=1$, the long-term forecasts will go to a non-zero constant.
@@ -510,7 +515,7 @@ class: middle
 
 ## Maximum likelihood estimation
 
-- Having identified the model order, we need to estimate the parameters $c$, $\phi_1,\dots,\phi_p$,$\theta_1,\dots,\theta_q$.
+- Having identified the model order, we need to estimate the parameters $c,\phi_1,\dots,\phi_p \text{  }\theta_1,\dots,\theta_q$.
 
 * MLE is very similar to least squares estimation obtained by minimizing $\sum_{t-1}^T e_t^2$
 * The `Arima()` command allows CLS or MLE estimation.
@@ -676,3 +681,13 @@ autoplot(rw)  + ylab("") +
 ]
 ]
 ]
+
+---
+class: middle
+
+## Rethinking prediction project: .glowinline[tips]
+
+- [Ainsworth, R. (2020). Introduction to Using GitHub (Version 1.0.0) [Computer software].
+https://doi.org/10.5281/zenodo.3932346](https://rainsworth.github.io/intro-to-github/) a fantastic resource for learning about the power of git, github and most importantly how to collaborate.
+
+
