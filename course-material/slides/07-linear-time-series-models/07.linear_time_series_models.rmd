@@ -687,7 +687,6 @@ class: middle
 
 ## Rethinking prediction project: .glowinline[tips]
 
-- [Ainsworth, R. (2020). Introduction to Using GitHub (Version 1.0.0) [Computer software].
-https://doi.org/10.5281/zenodo.3932346](https://rainsworth.github.io/intro-to-github/) a fantastic resource for learning about the power of git, github and most importantly how to collaborate.
+- [Ainsworth, R. (2020). Introduction to Using GitHub (Version 1.0.0) Computer software](https://doi.org/10.5281/zenodo.3932346](https://rainsworth.github.io/intro-to-github/) a fantastic resource for learning about the power of git, github and most importantly how to collaborate.
 
 
