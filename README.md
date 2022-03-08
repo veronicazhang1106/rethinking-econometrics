@@ -14,4 +14,4 @@ removing the frictions and orthodoxies of traditional econometric
 *playbooks*. Computation and coding play a central role with
 mathematical foundations only introduce to aid deeper understanding.
 
-See [here](outline.html) for complete outline of course
+See [here](outline.md) for complete outline of course
