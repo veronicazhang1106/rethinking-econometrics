@@ -651,7 +651,7 @@ class: middle
 
 .blockquote[
 Read
-Bailey, D. H. & Prado, M. L. de. Finance is Not Excused: Why Finance Should Not Flout Basic Principles of Statistics. Ssrn Electron J (2021) doi:10.2139/ssrn.3895330.
+Bailey, D. H. & Prado, M. L. de. Finance is Not Excused: Why Finance Should Not Flout Basic Principles of Statistics. Ssrn Electron J (2021) doi:10.2139/ssrn.gi3895330.
 ]  
 
 
