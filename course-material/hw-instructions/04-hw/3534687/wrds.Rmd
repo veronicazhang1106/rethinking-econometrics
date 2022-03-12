@@ -1,0 +1,335 @@
+---
+title: "wrds set up"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+>Learning objective is to become conversant in building and executing WRDS web queries
+
+# What is WRDS?
+WRDS stands for Wharton Research Data Services.  
+WRDS aggregates data into a standard format and then makes it available to subscribers.
+
+## Accessing data programmatically
+We can access the data programmatically by using `RPostgress` package which is pre-installed in the workspace
+```{r}
+library(RPostgres)
+library(tidyverse)
+```
+
+### Initial set up
+Before we jump into research programming with R, we first need to create a Postgres Password File in your computing environment. This file contains essential WRDS connection parameters, including your WRDS username and password, so that you do not need to enter them each time you wish to connect to WRDS data within R on your workstation.  We will uses some command-line code to set this up^[You can also open a Terminal tab below to access the command line and run this code]
+
+```{r }
+file.create("~/.pgpass")
+file.edit("~/.pgpass")
+```
+
+Once in an editor, enter the following into your new .pgpass file and save it:
+
+`wrds-pgdata.wharton.upenn.edu:9737:wrds:wrds_username:wrds_password`
+
+Where 'wrds_username' is your WRDS Username and 'wrds_password' is your WRDS Password.
+
+>For example my user name and password are bquinn:adamskiquinn
+
+Finally for the connect to work we need to change the permissions to on the ~/.pgpass file using the following bash code
+
+```{bash}
+chmod 600 ~/.pgpass
+```
+
+
+### .Rprofile
+
+Now that your Postgres Password File is finished, you have the option to create an .Rprofile file as well, should you chose.
+
+The .Rprofile file contains any R code you'd like to run automatically at the start of every R session. Many users chose to put the initial WRDS Connection code in their R profile so that they are automatically connected to the WRDS Postgres data backend each time they start R. If you predominately use your R installation to connect to WRDS and work with WRDS data, this is the best option for you. The alternative to this is to put the connection code at the start of every R program you run. This option is best for users who work with WRDS data only sporadically in their R installation, or who sometimes work in their R environment without an internet connection. How to proceed is up to you. This section will continue with the .Rprofile setup instructions, and later documentation will assume that you have supplied this connection code in your .Rprofile file.
+
+Like the Postgres Password File, the .Rprofile file must be created to meet specific requirements. It must:
+
+    Start with a period
+    Match capitalization exactly
+    Have no extension
+    Be located in the root of your user home directory
+    Be a plain-text file!
+    
+```{r}
+file.create("~/.Rprofile")
+file.edit("~/.Rprofile")
+```
+
+
+Enter the following into your new .Rprofile file and save it:
+
+```{r}
+library(RPostgres)
+wrds <- dbConnect(Postgres(),
+                  host='wrds-pgdata.wharton.upenn.edu',
+                  port=9737,
+                  dbname='wrds',
+                  sslmode='require',
+                  user='bquinn')
+```
+Where 'wrds_username' is your WRDS Username in your pgpass file.
+
+IMPORTANT: Due to a strange bug in R, your .Rprofile file must have a trailing blank line at the end of it, otherwise R will fail to read the file properly. So, after copying in the above, press return at the end to create a new, empty line at the end of your .Rprofile file, then save your file and exit your editor.
+
+## Query WRDS using R
+
+Data Query Format using R
+R programs access WRDS PostgreSQL databases using the Rpostgres module, which allows you to use standard SQL queries in your R code. Such queries return to R as a local variable.
+
+All R programs that access WRDS data will use the following format:
+
+```
+res <- dbSendQuery(wrds,"SELECT * FROM dataset")
+data <- dbFetch(res,n=-1)
+dbClearResult(res)
+data
+```
+Where:
+
+dbSendQuery() uses the already-established wrds connection to prepare the SQL query string and save the query as the result res.
+SELECT * FROM dataset is a standard SQL query.
+dbFetch() fetches the data that results from running the query res against wrds and stores it as data. If you are querying a large amount of data or a wide date range, this step could take some time.
+n= is an optional parameter allowing you to limit the number of returned records. n=-1 is the default and returns all matching rows (no limit). n=10, for example, would instead only return the first 10 rows. This is a great way to test a SQL statement against a large dataset quickly.
+dbClearResult(res) closes the connection, readying for another query.
+data is the data retrieved from WRDS.
+Limiting the Number of Records Returned
+When working with large data sources, it is important to begin your research with small subsets of the data you eventually want to query. Limiting the number of returned records (also called observations) is essential while developing your code, as queries that involve large date ranges or query a large number of variables (column fields) could take a long time and generate large output files.
+
+Generally, until you are sure that you're getting exactly the data you're looking for, you should limit the number of observations returned to a sensible maximum such as 10 or 100. Remember, much of the data provided at WRDS is huge! It is highly recommended to develop your code using such a limit, then simply remove that limit when you are ready to run your final code.
+
+IMPORTANT: This is especially important if you are running R locally from your computer, as the returned query output data is downloaded from WRDS to your computer. Even if you have a fast computer, a slow or intermittent Internet connection could cripple your research if you don't perform your queries carefully.
+
+The following example shows limiting the number of returned records to 10 using the n=10 statement:
+
+```{r, eval=FALSE}
+data <- dbFetch(res, n=10)
+```
+
+## Querying the Dataset Structure (Metadata)
+When working with WRDS data, it is often useful to examine the structure of the dataset, before focusing on the data itself. WRDS data is organized by vendor (such as crsp) and referred to as a library. Each library contains a number of database tables or datasets (such as dsf), which contain the actual data in tabular format with column headers called variables.
+
+You can analyze the structure of the data through its metadata by querying the information_schema table, as outlined in the following steps:
+
+1.Select a library to work with, and list all available datasets within that library
+2. Select a dataset, and list all available variables (column headers) within that dataset
+
+>NOTE: When referencing library and dataset names, you must use all lowercase. This applies to both information_schema.tables and information_schema.columns files.
+
+Alternatively, a comprehensive list of all WRDS libraries is available at the Dataset List. This resource provides a listing of each library, their component datasets and variables, as well as a tabular database preview feature, and is helpful in establishing the structure of the data you're looking for in an easy manner from a Web browser.
+
+1. Determine the data libraries available at WRDS:
+
+```{r}
+res <- dbSendQuery(wrds, "select distinct table_schema
+                   from information_schema.tables
+                   where table_type ='VIEW'
+                   or table_type ='FOREIGN TABLE'
+                   order by table_schema")
+data <- dbFetch(res, n=-1)
+dbClearResult(res)
+data
+```
+This will list all libraries available at WRDS. Though all libraries will be shown, you must have a valid subscription for a library in order to access the data. You will receive an error message indicating this if you attempt to query data for which you do not have access.
+
+NOTE: Due to its huge size, the TAQ dataset is the only dataset where table_type = 'FOREIGN_TABLE'. If you do not intend to access TAQ data, you can that or statement.
+
+2. Determine the datasets within a given library:
+
+```{r}
+res <- dbSendQuery(wrds, "select distinct table_name
+                   from information_schema.columns
+                   where table_schema='crsp'
+                   order by table_name")
+data <- dbFetch(res, n=-1)
+dbClearResult(res)
+data
+```
+Where library is a dataset such as crsp as returned from step 1 above and dataset is a database within that library, such as dsf, as returned from query 2 above.
+
+```{r}
+res <- dbSendQuery(wrds, "select column_name
+                   from information_schema.columns
+                   where table_schema='crsp'
+                   and table_name='crsp_daily_data'
+                   order by column_name")
+data <- dbFetch(res, n=-1)
+dbClearResult(res)
+data
+```
+# Querying WRDS Data
+Now that you've learned how to query the metadata and understand the structure of the data, you are ready to query WRDS data directly. The dbSendQuery() function can be used quite flexibly to pull WRDS data directly.
+
+Unlike metadata queries, data queries reference both the data library and its constituent dataset together in dot notation. For example, a data query for the dataset dsf within the library crsp would use the syntax crsp.dsf.
+
+NOTE: Unlike querying the PostgreSQL information_schema table, querying database tables themselves (such as crsp.dsf) does not require that you adhere to any specific case (i.e. upper- or lowercase). However, to keep things the same across the board, WRDS recommends always using lowercase for referencing libraries and their datasets.
+
+To query the crsp.dsf dataset:
+
+```{r}
+res <- dbSendQuery(wrds, "select * from crsp.dsf")
+data <- dbFetch(res, n=10)
+dbClearResult(res)
+data
+```
+IMPORTANT: Setting n=10 limits the results to 10 records (also called observations). The table crsp.dsf is CRSP's Daily Stock File and tracks thousands of stocks over almost a hundred years - such a query that returns all records would take a very long time. In reality, most queries are far more specific, as shown in the examples below. It is highly recommended to develop your code using such a limit, then simply remove that limit (by by setting n =-1) when you are ready to run your final code.
+
+## Using max.print
+On the subject of limits is max.print, which specifies how many rows of output a given command is allowed to return before it is truncated. You can view your session's current max.print value with the command getOptions("max.print"). The default setting is 1000, but it counts every column as its own entry. Thus a query that returns 2000 rows of output but has five columns for each row (queries for five variables) would print out 200 lines of that output as each row counts as 5.
+
+You can increase this value with the command options(max.print=1000000), which would raise the limit to 1000000 for example. Keep in mind that the entire result set of your query is still saved in full to the output of dbFetch() (the data variable in our examples). The max.print value only limits the appearance of printing raw data to your R console (as shown in the third line above to view the contents of data).
+
+Searching by Variable (Column Field)
+Datasets often contain a large number of variables (column headers) such as date, ticker, cusip, price, or a host of other values depending on the dataset. Limiting the number of variables returned in queries speeds up the execution time and decreases the size of the returned data. Once you looked at the metadata and see the available variables, you probably want to specify only those you are interested in. You can do this by specifying each variable to query explicitly using the select statement, instead of selecting all (using the asterisk * which matches all variables). The following example specifies the cusip, permno, date, and two price variables from the CRSP Daily Stock File dataset (crsp.dsf).
+
+To query specific variables from the crsp.dsf dataset:
+
+```{r}
+res <- dbSendQuery(wrds, "select cusip,permno,date,bidlo,askhi
+                   from crsp.dsf")
+data <- dbFetch(res, n=10)
+dbClearResult(res)
+data
+```
+You can also further refine your query by selecting data that meets a certain criteria for one or more of these variables. You can limit the returned results to data which has an askhi value above 2500 and a bidlo value under 2000 as follows.
+
+To query variables that meet certain criteria:
+
+```{r}
+res <- dbSendQuery(wrds, "select cusip,permno,date,bidlo,askhi
+                   from crsp.dsf
+                   where askhi > 2500
+                   and bidlo < 2000")
+data <- dbFetch(res, n=10)
+dbClearResult(res)
+data
+```
+
+## Searching by Date
+
+One of the more common methods of querying data is by date. WRDS uses the date notation convention of yyyy-mm-dd, so January 4th, 2013, the first trading day of 2013, would be formatted as 2013-01-04. Dates in your SQL queries must be surrounded by single quotes.
+
+To query by date:
+
+```{r}
+res <- dbSendQuery(wrds, "select cusip,permno,date,bidlo,askhi
+                   from crsp.dsf
+                   where date = '2013-01-04'")
+data <- dbFetch(res, n=-1)
+dbClearResult(res)
+data
+```
+## Specific use case
+
+Suppose I would like to download the dividend data for Diageo plc listed on the london stock exchange for the last 10 years using [LSPD on WRDS]()
+
+1. Determine what dataset are available from LSPD
+
+```{r}
+res <- dbSendQuery(wrds, "select distinct table_name
+                   from information_schema.columns
+                   where table_schema='lspd'
+                   order by table_name")
+data <- dbFetch(res, n=-1)
+dbClearResult(res)
+data
+```
+2. Firstly we want to query `st_name` to identify the diageo G1 code for later lookups
+
+```{r}
+res <- dbSendQuery(wrds, "select * from lspd.st_names
+                   where n9 ~* 'Diageo';")
+data <- dbFetch(res, n=-1)
+dbClearResult(res)
+data
+```
+
+3. Have got the g1 ID of Diageo we can then access the dividend data as follows
+
+
+```{r}
+res <- dbSendQuery(wrds, "select * from lspd.st_dividends
+                   where g1=2307")
+data <- dbFetch(res, n=-1)
+dbClearResult(res)
+data
+```
+The data is code with d# number which can be deciphered from the [manual](https://wrds-www.wharton.upenn.edu/documents/787/LSPD_Manual_201312.pdf)
+
+D1 Ex Dividend Date
+Date (YYYYMMDD) when share went "XD".
+
+D2 Pay Date
+Date (YYYYMMDD) dividend paid.
+
+>D3 Net Dividend
+Net Dividend per share in hundredths of pence.
+
+D4 Tax Credit
+Tax credit per share in hundredths of pence or, 0 if the dividend is not liable for tax. Thus, the gross dividend is the sum of items D3 and the absolute value of 
+D5 Special Marker
+Marker to indicate the status of the dividend, where:
+0 Gross dividend (pre 1978)
+1 Net of tax
+2 Subject to tax
+3 Cash or scrip option
+4 Non-standard period
+5 Payment on account of next year
+6 For the year
+7 For the quarter
+8 Special date
+9 Tricky
+10 Tax free
+11 Paid in 2 parts
+12 Cash or scrip option + non-standard period
+13 Dividend restriction + non-standard period
+14 Payment on account of next year + non-standard period
+15 Dividend rights waived or part of dividend waived
+16 Government freeze of dividend restriction
+17 Net + non-standard period
+18 Payment on account of next year + net
+19 Net + cash or scrip option
+20 Net + government freeze or restriction
+21 Combined
+99 Cancelled
+
+D6 Year of Dividend
+Financial year (YYYY) on which dividend is paid.
+
+D7 Type of Dividend
+Marker (NN) to indicate the type of dividend, where possible single values of N are:
+1 First (or quarterly) interim
+2 Second interim
+3 Third interim
+4 Fourth interim
+5 Bonus
+6 Special distribution
+7 Capital distribution
+8 Special interim
+9 Final
+10 Liquidation distribution
+11     Capital repayment possibly via a special dividend (maybe with
+tax credit) or even a dividend in shares of another company
+12 B share in lieu of interim dividend
+13         B share in lieu of final dividend
+Note that some digits can be combined e.g. NN = 95 = Final and Bonus
+
+D8 Conversion Rate
+Conversion rate for non-sterling dividends. Note: Nothing useful now held in this field.
+
+D9 Announcement Date
+Date (YYYYMMDD) that this dividend was announced (or declared). The date will be set to zero if the information is either not available or prior to February 1965.
+From February 1965 to 1977 this date is the declaration date shown in Moodies (now Stubbs) Taxation Service. Recent dates are these as reported by EXSHARE.
+
+4. Finally visual the net dividend per share with your favoriate `geom`
+
+```{r}
+data %>% ggplot(aes(x=d1,y=d3/100)) + geom_line() + labs(x="",y="Dividend <br> per share <br> £'s", title="")
+```
+

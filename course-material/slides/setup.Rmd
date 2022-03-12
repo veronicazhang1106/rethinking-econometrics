@@ -3,8 +3,8 @@
 options(htmltools.dir.version = FALSE)
 # figure height, width, dpi
 knitr::opts_chunk$set(echo = TRUE, 
-                      fig.width = 6, 
-                      fig.height = 4,
+                      fig.width = 5, 
+                      fig.height = 2,
                       dpi = 300)
 # fontawesome
 htmltools::tagList(rmarkdown::html_dependency_font_awesome())
@@ -15,13 +15,33 @@ dev.off <- function(){
 # countdown pkg for all slide decks
 library(countdown)
 # set seed
-set.seed(1234)
+library(xaringanExtra)
+use_panelset()
+use_tile_view()
+library(knitr)
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE, message=FALSE)
+library(tidyverse)
+library(fontawesome) 
+library(xaringanthemer)
+library(fpp2)
+# library(bayesforecast)
+library(tidyquant)
+library(knitr)
+library(DT)
+theme_set(theme_tq(base_size = 14))
+library(tsfe)
+MyDeleteItems<-ls()
+rm(list=MyDeleteItems)
+library(latex2exp)
+theme_set(theme_dark(base_size = 10))
+library(tidyquant)
 ```
 
 layout: true
 <div class="my-footer">
 <span>
-<a href="https://quinference.com" target="_blank"><b>quinference.com</b></a> - Dr. Barry Quinn
+Barry Quinn 
 </span>
+<img src="/img/qmslogo.png" </img>
 </div> 
 ---

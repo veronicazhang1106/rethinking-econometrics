@@ -30,6 +30,5 @@ PerformanceAnalytics
 TTR
 quantmod
 tidyquant
-kableExtra
 DT
 tsfe

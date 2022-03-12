@@ -18,6 +18,91 @@
   --cornhusk-30: #F4DBB330;
   --opal-gray: #A49E9D;
   --opal-gray-30: #A49E9D30;
+  --color-salt: #61acf0; /* blue */
+  --color-fat: #f0a561; /* orange */
+  --color-acid: #cbd20a; /* lime */
+  --color-heat: #e74a2f; /* red */
+  --color-black: #1a1917; /* black */
+}
+.salt {
+  color: var(--color-salt);
+  font-size: 200%;
+  font-weight:700;
+}
+
+.fat {
+  color: var(--color-fat);
+  font-size: 200%;
+  font-weight:700;
+}
+
+.acid {
+  color: var(--color-acid);
+  font-size: 200%;
+  font-weight:700;
+}
+
+.heat {
+  color: var(--color-heat);
+  font-size: 200%;
+  font-weight:700;
+}
+
+.saltinline {
+  color: var(--color-salt);
+}
+
+.fatinline {
+  color: var(--color-fat);
+}
+
+.acidinline {
+  color: var(--color-acid);
+}
+
+.heatinline {
+  color: var(--color-heat);
+}
+
+/* Glow text class
+https://www.w3schools.com/howto/howto_css_glowing_text.asp
+*/
+
+.glow {
+  font-size: 200%;
+  font-weight:700;
+  color: #fff;
+  text-align: center;
+  -webkit-animation: glow 1s ease-in-out infinite alternate;
+  -moz-animation: glow 1s ease-in-out infinite alternate;
+  animation: glow 1s ease-in-out infinite alternate;
+}
+
+@-webkit-keyframes glow {
+  from {
+    text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073, 0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
+  }
+  to {
+    text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6, 0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
+  }
+}
+
+.glowinline {
+  font-size: 100%;
+  color: #fff;
+  text-align: center;
+  -webkit-animation: glow 1s ease-in-out infinite alternate;
+  -moz-animation: glow 1s ease-in-out infinite alternate;
+  animation: glow 1s ease-in-out infinite alternate;
+}
+
+@-webkit-keyframes glow {
+  from {
+    text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073, 0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
+  }
+  to {
+    text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6, 0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
+  }
 }
 
 
@@ -249,7 +334,7 @@ div.my-footer {
 div.my-footer span {
     font-size: 12pt;
     position: absolute;
-    color: #f5f5f5;
+    color: #FF0000;
     bottom: 10px;
 }
 div.my-footer a {
@@ -265,3 +350,44 @@ div.my-footer a {
   padding-right: 4em;
   font-size: 70%;
 }
+
+/* USYD blockquote */
+blockquote, .blockquote {
+  display: block;
+  margin-top: 0.1em;
+  margin-bottom: 0.2em;
+  margin-left: 5px;
+  margin-right: 5px;
+  border-left: solid 10px #0148A4;
+  border-top: solid 2px #0148A4;
+  border-bottom: solid 2px #0148A4;
+  border-right: solid 2px #0148A4;
+  box-shadow: 0 0 6px rgba(0,0,0,0.5);
+  /* background-color: #e64626; */
+  color: #e64626;
+  padding: 0.5em;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+}
+
+.blockquote p {
+  margin-top: 0px;
+  margin-bottom: 5px;
+}
+.blockquote > h1:first-of-type {
+  margin-top: 0px;
+  margin-bottom: 5px;
+}
+.blockquote > h2:first-of-type {
+  margin-top: 0px;
+  margin-bottom: 5px;
+}
+.blockquote > h3:first-of-type {
+  margin-top: 0px;
+  margin-bottom: 5px;
+}
+.blockquote > h4:first-of-type {
+  margin-top: 0px;
+  margin-bottom: 5px;
+}
+
