@@ -40,8 +40,8 @@ library(tidyquant)
 layout: true
 <div class="my-footer">
 <span>
-Barry Quinn 
+Barry Quinn CStat
 </span>
-<img src="/img/qmslogo.png" </img>
+
 </div> 
 ---
