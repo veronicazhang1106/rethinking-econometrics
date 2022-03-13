@@ -249,48 +249,39 @@ auto.arima(log(vix_ts))
 
 ---
 class: middle
-## Human choice versus `auto.arima`: VIX
 
-```{r, echo=TRUE, fig.height=4}
+## Human Vs Algo: Residual Diagnostics
+
+.panelset[
+.panel[.panel-name[Human]
+
+```{r}
 checkresiduals(fit, test=FALSE)
 ```
+]
 
-
-## Own model versus `auto.arima`: VIX
-
-```{r, echo=TRUE}
-checkresiduals(fit, plot=FALSE)
-```
-
-
-## Own model versus `auto.arima`: VIX
-
-```{r, echo=TRUE, fig.height=4}
+.panel[.panel-name[Human forecasting]
+```{r}
 fit %>% forecast(h=252) %>% autoplot
 ```
+]
 
-## Own model versus `auto.arima`: VIX
-
-```{r echo=TRUE, fig.height=4}
+.panel[.panel-name[Algorithm]
+```{r}
 checkresiduals(fit.auto,test = FALSE)
 ```
-
-
-## Own model versus `auto.arima`: VIX
-
-```{r echo=TRUE, fig.height=4}
-checkresiduals(fit.auto,plot = FALSE)
-```
-
-## Own model versus `auto.arima`: VIX
-
-```{r echo=TRUE, fig.height=4}
+]
+.panel[.panel-name[Algo forecasting]
+```{r}
 fit.auto %>% forecast(h=252) %>% autoplot()
 ```
+]
+]
 
+---
+class: middle
 
 ## Modelling procedure with `Arima`
-\fontsize{12}{13}\sf
 
 1. Plot the data. Identify any unusual observations.
 2. If necessary, transform the data (using a Box-Cox transformation) to stabilize the variance.
@@ -300,97 +291,84 @@ fit.auto %>% forecast(h=252) %>% autoplot()
 6. Check the residuals from your chosen model by plotting the ACF of the residuals, and doing a portmanteau test of the residuals. If they do not look like white noise, try a modified model.
 7. Once the residuals look like white noise, calculate forecasts.
 
+---
+class: middle
 
 ## Modelling procedure with `auto.arima`
-\fontsize{12}{13}\sf
 
 1. Plot the data. Identify any unusual observations.
-2. If necessary, transform the data (using a Box-Cox transformation) to stabilize the variance.
-
-\vspace*{1.15cm}
-
+2. If necessary, transform the data (using logs) to stabilize the variance.
 3. Use `auto.arima` to select a model.
 
-\vspace*{1.15cm}
+$\dots$
 
 6. Check the residuals from your chosen model by plotting the ACF of the residuals, and doing a portmanteau test of the residuals. If they do not look like white noise, try a modified model.
 7. Once the residuals look like white noise, calculate forecasts.
 
-## Modelling procedure
+---
+class: middle
 
-\centerline{\includegraphics[height=8.cm]{Figure-8-10}}
+# Project based example
 
-
-## Russell 2000 index monthly returns
-\fontsize{11.5}{15}\sf
+.hand[Russell 2000 index monthly returns]
 
 ```{r r2000r1, fig.height=3.3, echo=TRUE}
 autoplot(r2000r_m_ts) + xlab("Year") +
   ylab("monthly log returns")
 ```
 
-
-## Russell 2000 index monthly returns
-
 1. Time plot shows sudden changes, particularly big movements in 2007/2008 due to financial crisis. Otherwise nothing unusual and no need for  data adjustments.
-2. Little evidence of changing variance, so a Box-Cox transformation not necessary.
-3. Data are clearly stationary, so no differencing required.
+2. Little evidence of changing variance, so no log transformation needed.
+3. Data are clearly stationary, so no *differencing* required.
 
+---
+class: middle
 
-## Russell 2000 index monthly returns
+.pull-left[
 
-```{r r2000r2, echo=TRUE, fig.height=4}
+```{r r2000r2}
 ggtsdisplay(r2000r_m_ts)
 ```
-
-## Russell 2000 index monthly returns
-
+]
+.pull-right[
 4. PACF is suggestive of AR(5). So initial candidate model is ARIMA(5,0,0). No other obvious candidates.
-5. Fit ARIMA(5,0,0) model along with variations: ARIMA(4,0,0), ARIMA(3,0,0), ARIMA(4,0,1), etc. ARIMA(3,0,1) has smallest \text{AICc} value.
+5. Fit ARIMA(5,0,0) model along with variations: ARIMA(4,0,0), ARIMA(3,0,0), ARIMA(4,0,1), etc. ARIMA(3,0,1) has smallest *AICc* value.
+]
+
+---
+class: middle
 
 ## Russell 2000 index monthly returns
-\fontsize{10}{10}\sf
 
-```{r r2000r3, echo=TRUE}
+```{r r2000r3}
 (fit <- Arima(r2000r_m_ts, order=c(3,0,1)))
 ```
 
-## Russell 200 index monthly returns
-
 6. ACF plot of residuals from ARIMA(3,0,1) model look like white noise.
 
-\fontsize{11}{14}\sf
-
-```r
-checkresiduals(fit)
-```
-
-```{r r2000r4, echo=FALSE, fig.height=3.4}
-checkresiduals(fit, test = FALSE)
-```
-
-## Russell 200 index monthly returns
-
-```{r r20005, echo=FALSE}
+```{r r20005}
 checkresiduals(fit, plot=FALSE)
 ```
 
-## Russell 200 index monthly returns
 
-```{r, echo=TRUE}
+```{r}
 fit %>% forecast(h=24) %>% autoplot
 ```
 
-## Understanding the ARIMA output
 
-\fontsize{10}{14}\sf
+---
+class: middle
+
+## Understanding the ARIMA output
 
 ```{r r2000r6}
 (fit <- Arima(r2000r_m_ts, order=c(3,0,1)))
 ```
 
+---
+class: middle
+
 ## Understanding the ARIMA output
-\fontsize{10}{14}\sf
 
 ```{r coeffs}
 a=unname(round(fit$coef["intercept"],3))
@@ -412,102 +390,28 @@ $$y_t=`r ar1`y_{t-1}`r ar2`y_{t-2}`r ar3`y_{t-3} +`r ma1`\varepsilon_{t-1}+0.008
 
 * Using the multi-period return definition from the financial data lecture an annualised log return is simple $\sum_1^{12} y_t$ $\approx `r round(12*a/(1-sum(ar1,ar2,ar3)),2)`$ per annum. 
 
-# Forecasting
-
-## Point forecasts
-
-* How do we calculate point forecasts from ARIMA models?
-
-1. Rearrange ARIMA equation so $y_t$ is on LHS.
-2. Rewrite equation by replacing $t$ by $T+h$.
-3. On RHS, replace future observations by their forecasts, future errors by zero, and past errors by corresponding residuals.
-
-Start with $h=1$. Repeat for $h=2,3,\dots$.
-
-## Point forecasts
-\fontsize{14}{14}\sf
-
-\structure{ARIMA(3,1,1) forecasts: Step 1}
-\begin{block}{}
-\centerline{$(1-\phi_1B -\phi_2B^2-\phi_3B^3)(1-B) y_t = (1+\theta_1B)\varepsilon_{t},$}
-\end{block}
-\pause\vspace*{-0.4cm}
-\begin{align*}
-\left[1-(1+\phi_1)B +(\phi_1-\phi_2)B^2 + (\phi_2-\phi_3)B^3 +\phi_3B^4\right] y_t\\ = (1+\theta_1B)\varepsilon_{t},
-\end{align*}\pause\vspace*{-0.4cm}
-\begin{align*}
-y_t - (1+\phi_1)y_{t-1} +(\phi_1-\phi_2)y_{t-2} + (\phi_2-\phi_3)y_{t-3}\\ \mbox{}+\phi_3y_{t-4} = \varepsilon_t+\theta_1\varepsilon_{t-1}.
-\end{align*}\pause\vspace*{-0.4cm}
-\begin{align*}
-y_t = (1+\phi_1)y_{t-1} -(\phi_1-\phi_2)y_{t-2} - (\phi_2-\phi_3)y_{t-3}\\\mbox{} -\phi_3y_{t-4} + \varepsilon_t+\theta_1\varepsilon_{t-1}.
-\end{align*}
-
-## Point forecasts (h=1)
-\fontsize{14}{14}\sf
-
-\begin{block}{}
-\begin{align*}
-y_t = (1+\phi_1)y_{t-1} -(\phi_1-\phi_2)y_{t-2} - (\phi_2-\phi_3)y_{t-3}\\\mbox{} -\phi_3y_{t-4} + \varepsilon_t+\theta_1\varepsilon_{t-1}.
-\end{align*}
-\end{block}\pause
-\structure{ARIMA(3,1,1) forecasts: Step 2}
-\begin{align*}
-y_{T+1} = (1+\phi_1)y_{T} -(\phi_1-\phi_2)y_{T-1} - (\phi_2-\phi_3)y_{T-2}\\\mbox{} -\phi_3y_{T-3} + \varepsilon_{T+1}+\theta_1\varepsilon_{T}.
-\end{align*}\pause
-\structure{ARIMA(3,1,1) forecasts: Step 3}
-\begin{align*}
-\hat{y}_{T+1|T} = (1+\phi_1)y_{T} -(\phi_1-\phi_2)y_{T-1} - (\phi_2-\phi_3)y_{T-2}\\\mbox{} -\phi_3y_{T-3} + \theta_1 e_{T}.
-\end{align*}
-
-## Point forecasts (h=2)
-\fontsize{14}{14}\sf
-
-\begin{block}{}
-\begin{align*}
-y_t = (1+\phi_1)y_{t-1} -(\phi_1-\phi_2)y_{t-2} - (\phi_2-\phi_3)y_{t-3}\\\mbox{} -\phi_3y_{t-4} + \varepsilon_t+\theta_1\varepsilon_{t-1}.
-\end{align*}
-\end{block}\pause
-
-\structure{ARIMA(3,1,1) forecasts: Step 2}
-\begin{align*}
-y_{T+2} = (1+\phi_1)y_{T+1} -(\phi_1-\phi_2)y_{T} - (\phi_2-\phi_3)y_{T-1}\\\mbox{} -\phi_3y_{T-2} + \varepsilon_{T+2}+\theta_1\varepsilon_{T+1}.
-\end{align*}\pause
-
-\structure{ARIMA(3,1,1) forecasts: Step 3}
-\begin{align*}
-\hat{y}_{T+2|T} = (1+\phi_1)\hat{y}_{T+1|T} -(\phi_1-\phi_2)y_{T} - (\phi_2-\phi_3)y_{T-1}\\\mbox{} -\phi_3y_{T-2}.
-\end{align*}
-
-
-## Prediction intervals
-
-\begin{block}{95\% prediction interval}
-$$\hat{y}_{T+h|T} \pm 1.96\sqrt{v_{T+h|T}}$$
-where $v_{T+h|T}$ is estimated forecast variance.
-\end{block}\pause
-
-* $v_{T+1|T}=\hat{\sigma}^2$ for all ARIMA models regardless of parameters and orders.
-* Multi-step prediction intervals for ARIMA(0,0,$q$):
-\centerline{$\displaystyle y_t = \varepsilon_t + \sum_{i=1}^q \theta_i \varepsilon_{t-i}$}
-\centerline{$\displaystyle v_{T|T+h} = \hat{\sigma}^2 \left[ 1 + \sum_{i=1}^{h-1} \theta_i^2\right], \qquad\text{for~} h=2,3,\dots.$}
+---
+class: middle
 
 ## Frequentist prediction intervals
 
-\begin{block}{95\% Prediction interval}
 $$\hat{y}_{T+h|T} \pm 1.96\sqrt{v_{T+h|T}}$$
 where $v_{T+h|T}$ is estimated forecast variance.
-\end{block}
 
+--
+
+* $v_{T+1|T}=\hat{\sigma}^2$ for all ARIMA models regardless of parameters and orders.
 * Multi-step prediction intervals for ARIMA(0,0,$q$):
-\centerline{$\displaystyle y_t = \varepsilon_t + \sum_{i=1}^q \theta_i \varepsilon_{t-i}.$}
-\centerline{$\displaystyle
-v_{T|T+h} = \hat{\sigma}^2 \left[ 1 + \sum_{i=1}^{h-1} \theta_i^2\right], \qquad\text{for~} h=2,3,\dots.$}
 
-\pause
+$$\displaystyle y_t = \varepsilon_t + \sum_{i=1}^q \theta_i \varepsilon_{t-i}$$
+
+$$\displaystyle v_{T|T+h} = \hat{\sigma}^2 \left[ 1 + \sum_{i=1}^{h-1} \theta_i^2\right], \qquad\text{for~} h=2,3,\dots.$$
 
 * AR(1): Rewrite as MA($\infty$) and use above result.
 * Other models beyond scope of this subject.
 
+---
+class: middle
 
 ## Prediction intervals
 
@@ -517,7 +421,7 @@ v_{T|T+h} = \hat{\sigma}^2 \left[ 1 + \sum_{i=1}^{h-1} \theta_i^2\right], \qquad
 * Prediction intervals tend to be too narrow.
     * the uncertainty in the parameter estimates has not been accounted for.
     * the ARIMA model assumes historical patterns will not change during the forecast period.
-    * the ARIMA model assumes uncorrelated future \rlap{errors}
+    * the ARIMA model assumes uncorrelated future $errors$
 
 
 ---
@@ -530,22 +434,32 @@ class: middle
 
 # What is Prophet?
 
+
 >Prophet is a procedure for forecasting time series data based on an additive model where non-linear trends are fit with yearly, weekly, and daily seasonality, plus holiday effects.
 
 .acid[
 - It works best with time series that have strong seasonal effects and several seasons of historical data. 
 - Prophet is robust to missing data and shifts in the trend, and typically handles outliers well.
-- It is based on a family **computational statistics** algorithms know as **generalised additive models** ]
+- It uses a **computational statistics** algorithm know as **generalised additive models** ]
 
 ---
 class: middle
 
 # How does it work? 
 
+![](../img/spongebobformula.gif)
+
+.large[
 - The procedure makes use of a decomposable time series model with three main model components: .heatinline[trend, seasonality, and holidays.]
 
-- Similar to a generalized additive model (GAM), with time as a predictor, Prophet fits several linear and non-linear functions of time as components. I
-n its simplest form;
+- Similar GAM, with time as a predictor, Prophet fits several linear and non-linear functions of time as components. In its simplest form;
+]
+
+---
+class: middle
+
+.hand-large[The maths]
+
 .blockquote[
 
 $$y(t) = g(t) + s(t) + h(t) + e(t)$$
@@ -560,63 +474,148 @@ class: middle
 
 In other words, the procedure’s equation can be written;
 
-Modeling seasonality as an additive component is the same approach taken by exponential smoothing… GAM formulation has the advantage that it decomposes easily and accommodates new components as necessary, for instance when a new source of seasonality is identified.
-Prophet is essentially “framing the forecasting problem as a curve-fitting exercise” rather than looking explicitly at the time based dependence of each observation.
+>Modeling seasonality as an additive component is the same approach taken by exponential smoothing… GAM formulation has the advantage that it decomposes easily and accommodates new components as necessary, for instance when a new source of seasonality is identified.
+
+- Prophet is essentially “framing the forecasting problem as a curve-fitting exercise” rather than looking explicitly at the time based dependence of each observation.
 
 ---
 class: middle
 
-# Trend
-The procedure provides two possible trend models for g(t), “a saturating growth model, and a piecewise linear model.”
-3.1) Saturating Growth Model
-If the data suggests promise of saturation — i.e. one is wrestling constraints like: cubed footage, processing power, number of people w/ Internet access— setting growth='logistic' is the move.
-Typical modeling of these nonlinear, saturating trends is basically accomplished;
+.acid[Trend]
 
+- The procedure provides two possible trend models for g(t), “a saturating growth model, and a piecewise linear model.”
+
+## Saturating Growth Model
+
+- If the data suggests promise of saturation, growth is viral-like such as bitcoin prices, then setting growth='logistic' is the move.
+
+- Typical modeling of these *nonlinear, saturating trends* is basically accomplished;
+
+.blockquote[
+
+$$ g(t)=\frac{C}{1+exp(-k(t-m))}$$
 where:
 C is the carrying capacity
 k is the growth rate
 m is an offset parameter
-There are two primary aspects of growth at Facebook (fluctuating carrying capacity and volatile rate of change) that are not captured in this simplified equation, though.
-Carrying Capacity v. Time
-First, as with many scalable business models carrying capacity is not constant — as “the number of people in the world who have access to the Internet increases, so does the growth ceiling.”
-Accounting for this is done by replacing the fixed capacity C with a time-varying capacity C(t).
-Rate of Change v. Time
-Second, the market does not allow for stagnant technology. Advances like those seen over the past decade in handheld devices, app development, and global connectivity, virtually ensure that growth rate is not constant.
-Because this rate can quickly compound due to new products, the model must be able to incorporate a varying rate in order to fit historical data.
-We incorporate trend changes in the growth model by explicitly defining changepoints where the growth rate is allowed to change.
-Suppose there are S changepoints at times sj, j = 1,…,S.
-Prophet defines a vector of rate adjustments;
+- There are two primary aspects of growth at Facebook (**fluctuating carrying capacity** and **volatile rate of change**) that are not captured in this simplified equation, though. 
+]
 
-where:
-δj is the change in rate that occurs at time sj
-The rate at any time t is then the base rate k, plus adjustments up to that time;
+---
+class: middle
 
-This is represented more cleanly by defining a vector;
+.acid[Trend]
 
-such that;
+### Carrying Capacity versus Time
 
-The rate at time t is then k+a(t)ᵀδ. When the rate k is adjusted, the offset parameter m must also be adjusted to connect the endpoints of the segments. The correct adjustment at changepoint j is easily computed as;
+- First, as with many scalable business models carrying capacity is not constant — as the number of people in the world who have access to the Internet increases, so does the growth ceiling.
 
-At last, the piecewise growth=‘logistic’ model is reached;
+- Accounting for this is done by replacing the fixed capacity C with a time-varying capacity $C(t)$.
 
-An important set of parameters in our model is C(t), or the expected capacities of the system at any point in time. Analysts often have insight into market sizes and can set these accordingly. There may also be external data sources that can provide carrying capacities,such as population forecasts from the World Bank.
-In application, the logistic growth model presented here is a special case of generalized logistic growth curves — which is only a single type of sigmoid curve — allowing the relatively straightforward extension(s) of this trend model to other families of curves.
-3.2) Linear Trend with Changepoints
-The second — much simpler and default — trend model is a simple Piecewise Linear Model with a constant rate of growth.
-It is best suited for problems without a market cap or other max in sight, and is set via growth='linear'.
-For forecasting problems that do not exhibit saturating growth, a piece-wise constant rate of growth provides a parsimonious and often useful model.
-Modeling the linear trend is easily realized with Prophet. In fact, not adjusting anything usually does the trick;
+---
+class: middle
 
+.acid[Trend]
+
+### Rate of Change versus Time
+
+- Second, the market does not allow for stagnant technology.
+
+- Advances like those seen over the past decade in handheld devices, app development, and global connectivity, virtually ensure that growth rate is not constant.
+
+- Because this rate can quickly compound due to new products, the model must be able to incorporate a varying rate in order to fit historical data.
+
+---
+class: middle
+
+.acid[Trend]
+
+# Trend changes growth models
+
+- In financial time series structural breaks a common
+
+> Roughly speaking a structural break change point is where some type of random shock changes the statistical properties of the time series, for example a permanent change in the mean value of the times series.
+
+- Prophet incorporates **trend changes** in the growth model by explicitly defining changepoints where the growth rate is allowed to change.
+
+---
+class: middle
+
+.acid[Trend]
+
+- Suppose there are S changepoints at times $s_j, j = 1,…,S$.
+
+- Prophet defines a vector of rate adjustments;
+$$\delta \in \R ^{S}$$
+
+- where: $\delta_j$ is the change in rate that occurs at time $s_j$
+- The rate at any time t is then the base rate $k$, plus adjustments up to that time;
+
+$$k + \sum_{j:t >\delta_j}\delta_j$$
+
+- This is represented more cleanly by defining a vector
+
+$$a(t) \in \{0,1\}^S$$
+
+- such that
+
+$$a_j(t)= \begin{cases}1,\text{if }t\ge s_j, \\ 0,\text{otherwise} \end{cases}$$
+
+
+---
+class: middle
+
+.acid[Trend]
+
+>The rate at time t is then k+*a*(t)ᵀ*δ*. When the rate k is adjusted, the offset parameter m must also be adjusted to connect the endpoints of the segments. The correct adjustment at changepoint j is easily computed as- Taylor et al., (2017)
+
+$$\gamma_j=\left(s_j-m-\sum_{l<j}\gamma l \right) \left(1-\frac{k+\sum_{l<j}\delta_l}{k+\sum_{l \le j} \delta_l} \right)$$
+
+- At last, the piecewise growth=‘logistic’ model is reached;
+
+$$g(t)=\frac{C(t)}{1+exp(-(k+a(t)^T\delta)(t-(m+a(t)^T\gamma)))}$$
+
+---
+class: middle
+
+.acid[Trend]
+
+> An important set of parameters in our model is C(t), or the expected capacities of the system at any point in time. Analysts often have insight into market sizes and can set these accordingly. There may also be external data sources that can provide carrying capacities,such as population forecasts from the World Bank.-Taylor et al., (2017)
+
+- In application, the logistic growth model presented here is a special case of generalized logistic growth curves — which is only a single type of sigmoid curve — allowing the relatively straightforward extension(s) of this trend model to other families of curves.
+
+--
+class: middle
+
+.acid[Trend]
+
+### Linear Trend with Changepoints
+
+- The second — much simpler and default — trend model is a simple Piecewise Linear Model with a constant rate of growth.
+- It is best suited for problems without a market cap or other max in sight, and is set via growth='linear'.
+- For forecasting problems that do not exhibit saturating growth, a piece-wise constant rate of growth provides a parsimonious and often useful model.
+- Modeling the linear trend is easily realized with Prophet. 
+
+.blockquote[
+$$g(t)=(k+a(t)^T\delta)t+(m+a(t)^T\gamma)$$
 where:
 k is the growth rate
 δ has the rate adjustments
 m is the offset parameter
 and, to make the function continuous, γj is set to:
+]
 
-3.3) Automatic Changepoint Selection
-If known, the changepoints sj can be specified by the user as dates of product launches and other growth-altering events, or, by default, changepoints may be automatically selected given a set of candidates.
-Automatic selection can be done quite naturally with the formulation in either model by putting a sparse prior on δ.
-Often, it is advisable to specify a large number of changepoints (e.g. one per month for a several year history) and use the prior:
+---
+class: middle
+
+## Automatic Changepoint Selection
+
+- If known, the changepoints $s_j$ can be specified by the user as dates of known events such as the start of recessions  and other growth-altering events,
+- Or by default, changepoints may be automatically selected given a set of candidates.
+
+>Automatic selection can be done quite naturally with the formulation in either model by putting a sparse prior on $\delta$
+
+- Often, it is advisable to specify a large number of changepoints (e.g. one per month for a several year history) and use the prior:
 
 where:
 τ directly controls the flexibility of the model in altering its rate
