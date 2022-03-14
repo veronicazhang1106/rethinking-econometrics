@@ -53,6 +53,42 @@
   color: var(--color-heat);
 }
 
+/* Font sizes */
+.larger { font-size: 400% }
+.bitlarger { font-size: 200% }
+.large { font-size: 130% }
+.midi { font-size: 85% }
+.small { font-size: 70% }
+.xsmall { font-size: 60% }
+.tiny { font-size: 50% }
+
+/* Custom fonts */
+
+.huge-text {
+ font-family: 'Montserrat', sans-serif;
+ font-size: 600%;
+ font-weight: bold;
+ color: var(--classic-blue);
+}
+.huge-number {
+ font-family: 'Montserrat', sans-serif;
+ font-size: 1700%;
+ font-weight: bold;
+ color: var(--baby-blue);
+}
+
+/* Handwriting */
+.hand{
+  font-family: 'Gochi Hand', cursive;
+  color: var(--classic-blue);
+  font-size: 125%;
+}
+.hand-large{
+  font-family: 'Gochi Hand', cursive;
+  color: var(--classic-blue);
+  font-size: 500%;
+}
+
 
 /* highlighted code */
 

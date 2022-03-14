@@ -35,6 +35,17 @@ rm(list=MyDeleteItems)
 library(latex2exp)
 theme_set(theme_dark(base_size = 10))
 library(tidyquant)
+library(bayesforecast)
+library(tsfe)
+theme_set(theme_tq(base_size = 6))
+style_mono_accent(
+  base_color = "#1c5253",
+  header_font_google = google_font("Josefin Sans"),
+  text_font_google   = google_font("Montserrat", "300", "300i"),
+  code_font_google   = google_font("Fira Mono")
+  )
+use_logo("img/qmslogo.png")
+
 ```
 
 layout: true

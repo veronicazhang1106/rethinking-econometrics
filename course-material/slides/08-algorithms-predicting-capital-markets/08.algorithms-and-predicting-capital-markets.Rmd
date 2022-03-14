@@ -23,30 +23,6 @@ output:
 ```{r child = "../setup.Rmd"}
 ```
 
-```{r setup1, include=FALSE}
-options(htmltools.dir.version = FALSE)
-library(knitr)
-knitr::opts_chunk$set(echo = FALSE,warning=FALSE, message=FALSE)
-library(bayesforecast)
-library(tidyquant)
-library(knitr)
-library(DT)
-theme_set(theme_tq(base_size = 8))
-style_mono_accent(
-  base_color = "#1c5253",
-  header_font_google = google_font("Josefin Sans"),
-  text_font_google   = google_font("Montserrat", "300", "300i"),
-  code_font_google   = google_font("Fira Mono")
-  )
-library(tsfe)
-use_panelset()
-use_tile_view()
-use_logo("../img/qmslogo.png")
-MyDeleteItems<-ls()
-rm(list=MyDeleteItems)
-# load("data/fin7028_dat.RData")
-
-```
 
 .acid[
 .hand[Learning Outcomes]
@@ -138,7 +114,7 @@ ability to learn without explicit programming, and can change when exposed to ne
 .footnote[Russell and Norvig (2016) provide an in-depth view of different aspects of AI.]
 
 ---
-class middle
+class: middle
 
 # Complex Systems
 
@@ -147,16 +123,17 @@ class middle
 ---
 class: middle
 
-# An rule-based ARIMA algorithm
+# A rule-based ARIMA algorithm
 
 .blockquote[`auto.arima()`]
 
 - For a non-seasonal ARIMA process we first need to select appropriate orders: $p,q,d$
 - We use the [Hyndman and Khandakar (JSS, 2008)](https://www.jstatsoft.org/article/view/v027i03) algorithm:
+
 .blockquote[
-  * Select no. differences $d$ and $D$ via KPSS test and seasonal strength measure.
-  * Select $p,q$ by minimising AICc.
-  * Use stepwise search to traverse model space.
+* Select no. differences $d$ and $D$ via KPSS test and seasonal strength measure.
+* Select $p,q$ by minimising AICc.
+* Use stepwise search to traverse model space.
 ]
 
 ---
@@ -177,7 +154,7 @@ data,
 ---
 class: middle
 
-# Algorithmic step 1:
+# Algorithmic rule 1:
 
 - Select current model (with smallest AICc) from:
 - ARIMA$(2,d,2)$
@@ -188,7 +165,7 @@ class: middle
 ---
 class: middle
 
-# Algorithmic step 2:
+# Algorithmic rule 2:
 
 - Consider variations of current model:
 
@@ -200,7 +177,7 @@ class: middle
 Model with lowest AICc becomes current model.
 ]
 
-.large[Repeat Step 2 until no lower AICc can be found]
+.large[Repeat rule 2 until no lower AICc can be found]
 
 ---
 class:middle
@@ -210,6 +187,15 @@ class:middle
 .panelset[
 .panel[.panel-name[Human choice]
 
+.pull-left[
+```{r, echo=T,eval=F}
+tidyquant::tq_get('^VIX') %>%
+  select(adjusted) %>%
+  ts() -> vix_ts
+ggtsdisplay(log(vix_ts))
+```
+]
+.pull-right[
 ```{r}
 tidyquant::tq_get('^VIX') %>%
   select(adjusted) %>%
@@ -217,28 +203,66 @@ tidyquant::tq_get('^VIX') %>%
 ggtsdisplay(log(vix_ts))
 ```
 ]
+]
 .panel[.panel-name[Human choice]
+
+.pull-left[
+```{r, eval=F,echo=T}
+ggtsdisplay(diff(log(vix_ts)))
+```
+
+]
+.pull-right[
 ```{r}
 ggtsdisplay(diff(log(vix_ts)))
 ```
 ]
+]
 .panel[.panel-name[Human choice]
+
+.pull-left[
+```{r, eval=F,echo=T}
+(fit <- Arima(log(vix_ts),order=c(7,1,0)))
+```
+
+]
+.pull-right[
 ```{r}
 (fit <- Arima(log(vix_ts),order=c(7,1,0)))
 ```
 ]
+]
 .panel[.panel-name[Algorithmic choice]
 
+.pull-left[
+```{r,eval=F,echo=TRUE}
+auto.arima(log(vix_ts))
+```
+
+]
+.pull-right[
 ```{r}
 auto.arima(log(vix_ts))
 ```
 ]
+]
 .panel[.panel-name[Try harder algorithm]
-```{r tryharder}
+
+.pull-left[
+```{r tryharder,eval=F,echo=TRUE}
 (fit.auto<-auto.arima(log(vix_ts), 
                       stepwise=FALSE,
                       approximation=FALSE))
 ```
+
+]
+.pull-right[
+```{r}
+(fit.auto<-auto.arima(log(vix_ts), 
+                      stepwise=FALSE,
+                      approximation=FALSE))
+```
+]
 ]
 .panel[.panel-name[Discussion]
 .discussion[
@@ -255,28 +279,60 @@ class: middle
 ## Human Vs Algo: Residual Diagnostics
 
 .panelset[
-.panel[.panel-name[Human]
+.panel[.panel-name[Human choice]
 
+.pull-left[
+```{r,eval=F,echo=T}
+checkresiduals(fit, test=FALSE)
+```
+
+]
+.pull-right[
 ```{r}
 checkresiduals(fit, test=FALSE)
 ```
+
+]
 ]
 
 .panel[.panel-name[Human forecasting]
+.pull-left[
+```{r, eval=F,echo=T}
+fit %>% forecast(h=252) %>% autoplot
+```
+]
+.pull-right[
 ```{r}
 fit %>% forecast(h=252) %>% autoplot
 ```
 ]
+]
 
 .panel[.panel-name[Algorithm]
+
+.pull-left[
+```{r,eval=F,echo=T}
+checkresiduals(fit.auto,test = FALSE)
+```
+]
+.pull-right[
 ```{r}
 checkresiduals(fit.auto,test = FALSE)
 ```
 ]
+]
 .panel[.panel-name[Algo forecasting]
+
+.pull-right[
+```{r,echo=T,eval=F}
+fit.auto %>% forecast(h=252) %>% autoplot()
+```
+]
+.pull-right[
 ```{r}
 fit.auto %>% forecast(h=252) %>% autoplot()
 ```
+]
 ]
 ]
 
@@ -285,13 +341,15 @@ class: middle
 
 ## Modelling procedure with `Arima`
 
+.blockquote[
 1. Plot the data. Identify any unusual observations.
 2. If necessary, transform the data (using a Box-Cox transformation) to stabilize the variance.
 3. If the data are non-stationary: take first differences of the data until the data are stationary.
-4. Examine the ACF/PACF: Is an AR($p$) or MA($q$) model appropriate?
-5. Try your chosen model(s), and  use the \text{AICc} to search for a better model.
+4. Examine the ACF/PACF: Is an AR(p) or MA(q) model appropriate?
+5. Try your chosen model(s), and  use the AICc to search for a better model.
 6. Check the residuals from your chosen model by plotting the ACF of the residuals, and doing a portmanteau test of the residuals. If they do not look like white noise, try a modified model.
 7. Once the residuals look like white noise, calculate forecasts.
+]
 
 ---
 class: middle
@@ -301,8 +359,6 @@ class: middle
 1. Plot the data. Identify any unusual observations.
 2. If necessary, transform the data (using logs) to stabilize the variance.
 3. Use `auto.arima` to select a model.
-
-$\dots$
 
 6. Check the residuals from your chosen model by plotting the ACF of the residuals, and doing a portmanteau test of the residuals. If they do not look like white noise, try a modified model.
 7. Once the residuals look like white noise, calculate forecasts.
@@ -314,7 +370,8 @@ class: middle
 
 .hand[Russell 2000 index monthly returns]
 
-```{r r2000r1}
+.pull-left[
+```{r r2000r1,echo=TRUE}
 tsfe::indices %>%
   select(date,`RUSSELL 2000 - PRICE INDEX`) %>%
   rename(r2000=`RUSSELL 2000 - PRICE INDEX`) %>%
@@ -324,17 +381,23 @@ tsfe::indices %>%
 autoplot(r2000r_m_ts) + xlab("Year") +
   ylab("monthly log returns")
 ```
-
+]
+.pull-right[
 1. Time plot shows sudden changes, particularly big movements in 2007/2008 due to financial crisis. Otherwise nothing unusual and no need for  data adjustments.
 2. Little evidence of changing variance, so no log transformation needed.
 3. Data are clearly stationary, so no *differencing* required.
+]
 
 ---
 class: middle
 
+# Project based example
+
+.hand[Russell 2000 index monthly returns]
+
 .pull-left[
 
-```{r r2000r2}
+```{r r2000r2,echo=TRUE}
 ggtsdisplay(r2000r_m_ts)
 ```
 ]
@@ -346,23 +409,34 @@ ggtsdisplay(r2000r_m_ts)
 ---
 class: middle
 
-## Russell 2000 index monthly returns
+# Project based example
 
+.panelset[
+.panel[.panel-name[Manual fit]
+.pull-left[
+```{r,echo=T,eval=F}
+(fit <- Arima(r2000r_m_ts, order=c(3,0,1)))
+```
+]
+.pull-right[
 ```{r r2000r3}
 (fit <- Arima(r2000r_m_ts, order=c(3,0,1)))
 ```
-
+]
+]
+.panel[.panel-name[Residual check]
 6. ACF plot of residuals from ARIMA(3,0,1) model look like white noise.
 
-```{r r20005}
+```{r r20005,echo=T}
 checkresiduals(fit, plot=FALSE)
 ```
-
-
-```{r}
+]
+.panel[.panel-name[Forecasting]
+```{r,echo=T}
 fit %>% forecast(h=24) %>% autoplot
 ```
-
+]
+]
 
 ---
 class: middle
@@ -455,9 +529,11 @@ class: middle
 
 # How does it work? 
 
-![](../img/spongebobformula.gif)
+.pull-left[
+![](../img/spongebob.gif)
+]
 
-.large[
+.pull-right[
 - The procedure makes use of a decomposable time series model with three main model components: .heatinline[trend, seasonality, and holidays.]
 
 - Similar GAM, with time as a predictor, Prophet fits several linear and non-linear functions of time as components. In its simplest form;
@@ -592,7 +668,7 @@ class: middle
 
 - In application, the logistic growth model presented here is a special case of generalized logistic growth curves — which is only a single type of sigmoid curve — allowing the relatively straightforward extension(s) of this trend model to other families of curves.
 
---
+---
 class: middle
 
 .acid[Trend]
@@ -652,7 +728,7 @@ class: middle
 
 .hand[going Bayesian]
 
-.blockquote[
+.blockquote.midi[
 - In a fully Bayesian framework this could be done with a hierarchical prior on τ to obtain its posterior, otherwise we can use the maximum likelihood estimate of the rate scale parameter:
 
 $$\lambda=\frac{1}{S}\sum_{j=1}^S |\delta_j|$$
