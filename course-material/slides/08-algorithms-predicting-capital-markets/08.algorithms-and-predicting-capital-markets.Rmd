@@ -686,7 +686,7 @@ where:
 k is the growth rate
 δ has the rate adjustments
 m is the offset parameter
-and, to make the function continuous, γj is set to:
+and, to make the function continuous, γ_j is set to:
 ]
 
 ---
