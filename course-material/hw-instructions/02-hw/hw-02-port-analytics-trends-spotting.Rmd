@@ -1,0 +1,304 @@
+---
+title: "HW 02 - Portfolio analytics, autocorrelation spotting"
+subtitle: ""
+output: 
+  tufte::tufte_html:
+    css: ../hw.css
+    tufte_variant: "envisioned"
+    highlight: pygments
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+library(tidyverse) # loads dplyr, ggplot2, and others
+library(tidyquant)
+library(fpp2)
+library(tsfe)
+library(ggpmisc)
+knitr::opts_chunk$set(echo = FALSE,warning = FALSE,message = FALSE)
+data("ftse350")
+```
+The goal of this assignment is to introduce you to data manipulation, some portfolio analytics and spot patterns in financial time series using autocorrelation algorthims.
+
+# Getting started
+
+## Prerequisites {data-link="Prerequisites"}
+
+This assignment assumes that you have reviewed the lectures titled 
+- "04-financial data stories"
+- "05-Exploring daata"
+If you haven't yet done so, please pause and complete the following before continuing.
+
+## Terminology
+
+We've already thrown around a few new terms, so let's define them before we proceed.
+
+-   **R:** Name of the programming language we will be using throughout the course.
+
+-   **RStudio:** An integrated development environment for R.
+    In other words, a convenient interface for writing and running R code.
+
+-   **Git:** A version control system.
+
+-   **GitHub:** A web platform for hosting version controlled files and facilitating collaboration among users.
+
+-   **Repository:** A Git repository contains all of your project's files and stores each file's revision history.
+    It's common to refer to a repository as a repo.
+
+    -   In this course, each assignment you work on will be contained in a Git repo.
+    -   For individual assignments, only you will have access to the repo. For team assignments, all team members will have access to a single repo where they work collaboratively.
+    -   All repos associated with this course are housed in the course GitHub organization. The organization is set up such that students can only see repos they have access to, but the course staff can see all of them.
+
+## Starting slow
+
+As the course progresses, you are encouraged to explore beyond what the assignments dictate; a willingness to experiment will make you a much better programmer!
+Before we get to that stage, however, you need to build some basic fluency in R.
+First, we will explore the fundamental building blocks of all of these tools.
+
+Before you can get started with the analysis, you need to make sure you:
+
+-   have a GitHub account (use your QUB email to register)
+
+-   are a member of the course GitHub organization (share your username and email with lecturer to receive an invite)
+
+-   are a member of the course RStudio Cloud space (See Canvas Announcements for details)
+
+If you failed to confirm any of these, it means you have not yet completed the prerequisites for this assignment.
+Please go back to [Prerequisites] and complete them before continuing the assignment.
+
+# Workflow
+
+```{marginfigure}
+**IMPORTANT:** If there is no GitHub repo created for you for this assignment, it means I didn't have your GitHub username as of when I assigned the homework. Please let me know your GitHub username asap, and I can create your repo.
+```
+
+For each assignment in this course you will start with a GitHub repo that I created for you and that contains the starter documents you will build upon when working on your assignment.
+The first step is always to bring these files into RStudio so that you can edit them, run them, view your results, and interpret them.
+This action is called **cloning**.
+
+Then you will work in RStudio on the data analysis, making **commits** along the way (snapshots of your changes) and finally **push** all your work back to GitHub.
+
+The next few steps will walk you through the process of getting information of the repo to be cloned, cloning your repo in a new RStudio Cloud project, and getting started with the analysis.
+
+### Step 1. Get URL of repo to be cloned
+
+```{r clone-repo-link, fig.margin = TRUE, echo = FALSE, eval = TRUE}
+knitr::include_graphics("img/clone-repo-link.png")
+```
+
+On GitHub, click on the green **Code** button, select **HTTPS** (this might already be selected by default, and if it is, you'll see the text *Use Git or checkout with SVN using the web URL* jas in the image on the right).
+Click on the clipboard icon 📋 to copy the repo URL.
+
+### Step 2. Go to RStudio Cloud
+
+Go to [qrap.rstudio.cloud](https://sso.rstudio.cloud/q-rap) and then **navigate to the course workspace** via the left sidebar.
+It's very important that you do this for two reasons:
+
+-   It's only when you're in the course workspace that you'll be able to benefit from R packages I've pre-installed for you so that your project can be configured correctly.
+-   It's only when you're in the course workspace that your usage of RStudio Cloud won't count towards the free usage limits.
+
+```{r course-workspace, fig.margin = TRUE, echo = FALSE, eval = TRUE}
+knitr::include_graphics("img/course-workspace.png")
+```
+
+Before you proceed, confirm that you are in the course workspace by checking out what's on your top bar in RStudio Cloud.
+
+### Step 3. Clone the repo
+
+In RStudio, click on the **down arrow** next to New Project and then choose **New Project from Git Repository**.
+
+In the pop-up window, **paste the URL** you copied from GitHub, make sure the box for **Add packages from the base project** is checked (it should be, by default) and then click **OK**.
+
+```{r new-project-from-git, echo = FALSE, eval = TRUE, fig.align = "left"}
+knitr::include_graphics("img/new-project-from-git.png")
+```
+
+## Welcome
+
+In this tutorial, you will learn how to:
+
+* How to rank financial data in terms of size
+* How filter stocks `filter()` 
+* Calculating and visualisng log returns
+* Different ways to calculate portfolio returns
+* A second go and using git, GitHub
+
+### Setup
+
+These packages are require and pre-loaded on Q-RaP RStudio Cloud. Before changes this document with some answers, knitr, commit and push it back to the class organisation on GitHub.
+
+```{r eval = FALSE}
+library(tidyverse) # loads dplyr, ggplot2, and others
+library(tidyquant)
+library(ggpmisc)
+library(fpp2)
+```
+
+## Topic 1 data manipulation
+
+### Exercise explore the FTSE350 data
+
+> In the `tsfe` pacakge open the  `ftse350` data and using the glimpse function to explore the data.  Describe what you see?  Click `Run Code` to see the data
+
+
+```{r summarise}
+tsfe::ftse350 %>% glimpse
+```
+
+
+> What is the top 100 stocks in terms of market capitalisation? Challenge: filter the data to rank stocks on market size (Hint: some code to start `ftse350 %>% filter(variable=="Market Value") %>% group_by(date) %>%`)
+
+**Hint:** Use`rank = min_rank(desc(value)))` to rank `value` (for example) such that the largest market cap will be the top. 
+
+```{r Put asnwer here}
+
+```
+
+
+.context-box-red.large[REMIND TO ADD, COMMIT AND PUSH, CHANGES AFTER YOU ANSWER THIS]
+
+
+### Exercise stocks
+Extract the prices and market values for the following three stocks. Name the resultant dataframe `port`
+
+1. Greggs
+2. BT 
+3. Unilever
+
+
+```{r filtering-by-name, exercise=TRUE}
+tickers<-c("GRG","BT.A","ULVR") ## these are the tickers of the above stocks
+```
+
+Adapt this example to include the three stocks
+
+```{r Example}
+tickers<-c("GRG")
+ftse350 %>% filter(ticker %in% tickers) -> port
+```
+
+
+context-box-red.large[REMIND TO ADD, COMMIT AND PUSH, CHANGES AFTER YOU ANSWER THIS]
+
+## Topic 2 Calculating and visualising returns
+
+The port data which you created is in `tidy` form, which is one observation per row.  For the purposes of portfolio analytics we will need to filter on one variable to create returns.
+
+### Exercise log returns
+Create log returns for each daily price series using the `mutate` function in the `dplyr` package. Recall the formula
+
+$$r_t=ln(P_t)-ln(P_{t-1})$$
+
+Use the `lag()` in the `mutate` to call $P_{t-1}$ and add the final part of the below coding series to create log returns
+
+```
+port_ret <- port %>%
+  filter(variable=="Price") %>%
+  arrange(ticker,date) %>% # ensure data is order by stock and then chronologically 
+  group_by(ticker) %>% # this ensures the lag operating only operate with each symbol
+
+```
+
+### Exercise log returns
+Create log returns for each daily price series using the `mutate` function in the `dplyr` package. Recall the formula
+
+
+### Exercise how to plot returns for comparison 1
+Plot each log returns series in such a way as to compare their volatility over time using the aesthetic `colour`. Hint: try using `facet_wrap` in `ggplot2` to create separate plots.
+
+```{r plotprice}
+
+```
+
+
+
+### Exercise how to plot returns for comparison 2
+Plot each log returns series in such a way as to compare their volatility over time. Hint: try using `facet_wrap` in `ggplot2` to create separate plots.
+
+```{r plotprice1, exercise=TRUE}
+
+```
+
+
+Another way to compare these series is to consider the extreme (or outlying) returns.  Conventionally, you might want to consider values greater than 95^th^ percentile by using `stat_peak()` and `stat_valley()` from the `ggpmisc` package. 
+
+
+> In our experience, the unexpected is usually not an "outlier", or an aberrant point by rather a systematic pattern in some part of the data - Gelman et al. (2020) 
+
+
+## Topic 3 Portfolio analytics
+
+This topic you will calculate two daily portfolio return series for a portfolio containing the three stocks using log returns and market value.
+
+### Exercise 1 equally weighted portfolio returns 
+
+Create an equally weighted returns series for the three stocks, then plot the resultant return series
+Hint: the mean is a equally weighted statistic.
+
+Then using the portfolio return formula
+
+$$r_{p,t} \approx \sum_{i=1}^{N}w_ir_{it}$$
+
+
+```{r eq-weight-returns, exercise=TRUE}
+
+```
+
+
+### Exercise calculate value weighted
+
+Create an value weighted returns series for the three stocks, then plot the resultant return series
+Hint: use the data with both price and market value
+
+$$w_{it}= \frac{V_{it}}{\sum V_{it}} \text{ where } V_{it}=Quantity \times P_{it}$$
+
+Then using the portfolio return formula
+
+$$r_{p,t} \approx \sum_{i=1}^{N}w_ir_{it}$$
+
+
+```{r reshape the data, echo=TRUE, eval=TRUE}
+port_w <- port %>% 
+  select(ticker,date,variable,value) %>%
+  spread(variable,value)
+```
+
+
+```{r vw-weight-returns, exercise=TRUE}
+
+```
+
+
+### Exercise merge returns
+
+Combine the portfolio returns using `left_join()` . Hint: you need to choose a merging variable which unique identifies the portfolio returns time series.  Name the new object `port_ret_both`
+
+```{r combine, exercise=TRUE}
+
+```
+
+
+### Exercise: plot returns and describe
+
+Plot and visually compare the value-weight returns to the equally-weighted returns.  Provide some rationale for the differences? Hint: use `cumsum` to plot the wealth creation in the daily returns series
+
+```{r compare, exercise=TRUE}
+
+
+```
+
+
+## Topic 3 patterns and trends
+
+## Learning outcomes
+
+We have introduced the following graphics functions:
+
+  - `gglagplot`
+  - `ggAcf`
+
+Explore the following time series from the `tsfe` package using these functions. Can you spot any seasonality, cyclicity and trend? What do you learn about the series?
+
+  - `ni_hsales_ts`
+  - `vix_ts`
+  - `ftse_m_ts`

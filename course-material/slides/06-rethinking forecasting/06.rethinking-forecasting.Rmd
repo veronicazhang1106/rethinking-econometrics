@@ -712,6 +712,7 @@ class: middle
 .panel-name[Build Prophet Model]
 
 ```{r}
+fts
 library(prophet)
 names(ftse)<-c("ds","y")
 m<-prophet(ftse)

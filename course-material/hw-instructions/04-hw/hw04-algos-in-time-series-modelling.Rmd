@@ -1,0 +1,305 @@
+---
+itle: "HW 04 - Algorithms in time series modelling"
+subtitle: "ARIMA and the Prophet!"
+description: "This exercise will test your knowledge of manual and automatic ARIMA modelling, and how the Prophet algorithm works with financial time series"
+output: 
+  tufte::tufte_html:
+    css: ../hw.css
+    tufte_variant: "envisioned"
+    highlight: pygments
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+rm=ls()
+rm(list = rm)
+library(fpp2)
+library(xgboost)
+library(tidymodels)
+library(modeltime)
+library(tidyverse)
+library(lubridate)
+library(timetk)
+knitr::opts_chunk$set(
+	message = FALSE,
+	warning = FALSE,
+	echo = T,
+	eval = T,
+	comment = "#<"
+)
+```
+# Learning Outcomes
+
+> Human choices for modelling a stationary `ts`
+> Algorithmically modelling a stationary `ts`
+> Modelling non-stationary data with a more complex generative algorithm
+
+# Getting started
+
+This assignment assumes that you have reviewed the lectures titled "Exploring financial data".
+If you haven't yet done so, please pause and complete the following before continuing.
+
+## Prerequisites {data-link="Prerequisites"}
+
+2. Ethical econometricians always work in `Projects` in RStudio. To become an ethical econometrician I recommend following this practice
+
+![](http://www.rstudio.com/images/docs/projects_new.png)
+
+[Why use projects?](https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects)
+
+
+# Exercise 1 testing your knowledge with some fake data
+
+```{r acf random numbers, fig.cap="Figure 1: ACF for a set of white noise series. x1 has 30 observations, x2 has 100 observations and x3 has 1000 observations",eval=TRUE}
+library(gridExtra)
+set.seed(101)
+x1<-rnorm(30)
+p1<-ggAcf(x1,lag.max = 20) + ylim(1,-1)
+x2<-rnorm(100)
+p2<-ggAcf(x2,lag.max = 20) + ylim(1,-1)
+x3<-rnorm(1000)
+p3<-ggAcf(x3,lag.max = 20) + ylim(1,-1)
+grid.arrange(p1,p2,p3,nrow=1)
+```
+
+
+>Figure 1 shows the ACFs for 30 random numbers, 100 random numbers and 1,000 random numbers.
+
+> a. Explain the differences among these figures. Do they all indicate that the data are white noise?
+
+* The figures show different critical values (blue dashed lines).
+
+* All figures indicate that the data are white noise.
+
+> b. Why are the critical values at different distances from the mean of zero? Why are the autocorrelations different in each figure when they each refer to white noise?
+
+* The critical values are at different distances from zero because the data sets have different number of observations. The more observations in a data set, the less noise appears in the correlation estimates (spikes). Therefore the critical values for bigger data sets can be smaller in order to check if the data is not white noise.
+
+# Exercise 2 Non-stationary data in the *wild*
+
+> A classic example of a non-stationary series is the daily closing IBM stock price series (data set `ibmclose`). Use R to plot the daily closing prices for IBM stock and the ACF and PACF. Explain how each plot shows that the series is non-stationary and should be differenced.
+
+```{r}
+ggtsdisplay(ibmclose)
+```
+
+The time plot shows the series "wandering around", which is a typical indication of non-stationarity. Differencing the series should remove this feature.
+
+ACF does not drop quickly to zero, moreover the value $r_1$ is large and positive (almost 1 in this case). All these are signs of a non-stationary time series. Therefore it should be differenced to obtain a stationary series.
+
+PACF value $r_1$ is almost 1. This is a sign of a non-stationary process that should be differenced in order to obtain a stationary series.
+
+# Exercise 3 To transform or not to transform
+
+>For the following series, find an appropriate Box-Cox transformation and order of differencing in order to obtain stationary data.
+>
+> a. `usnetelec`
+
+```{r}
+autoplot(usnetelec)
+```
+
+There is no need for a Box-Cox transformation in this case.
+
+```{r}
+usnetelec %>% diff() %>% autoplot()
+```
+
+> b. `JohnsonJohnson`
+
+```{r}
+autoplot(JohnsonJohnson)
+JohnsonJohnson %>% BoxCox(lambda=0) %>% diff(lag=4) %>% diff() %>% autoplot()
+```
+
+# Exercise 4 What is the math?
+
+
+>For the `JohnsonJohnson` data, write down the differences you chose
+
+A seasonal (lag 12) difference, followed by a first difference:
+$$(y_t-y_{t-12})$$
+
+# Exercise 5 Faking it before you make it
+
+>Use R to simulate and plot some data from simple ARIMA models.
+
+> a. Use the following R code to generate data from an AR(1) model with $\phi_{1} = 0.6$ and $\sigma^2=1$. The process starts with $y_1=0$.  HINT once you have created the function using it by change the values of phi instead it for example  ar1(0.6)
+
+
+```{r}
+ar1 <- function(phi, n=100)
+{
+  y <- ts(numeric(n))
+  e <- rnorm(n)
+  for(i in 2:n)
+    y[i] <- phi*y[i-1] + e[i]
+  return(y)
+}
+```
+
+> b. Produce a time plot for the series. How does the plot change as you change $\phi_1$?
+
+Some examples of changing $\phi_1$
+
+```{r}
+autoplot(ar1(0.6))
+autoplot(ar1(0.95))
+autoplot(ar1(0.05))
+autoplot(ar1(-0.65))
+```
+
+> c. Write your own code to generate data from an MA(1) model with $\theta_{1}  =  0.6$ and $\sigma^2=1$.
+
+```{r}
+ma1 <- function(theta, n=100)
+{
+  y <- ts(numeric(100))
+  e <- rnorm(100)
+  for(i in 2:100)
+    y[i] <- theta*e[i-1] + e[i]
+  return(y)
+}
+```
+
+> d. Produce a time plot for the series. How does the plot change as you change $\theta_1$?
+
+```{r}
+autoplot(ma1(0.6))
+autoplot(ma1(0.95))
+autoplot(ma1(0.05))
+autoplot(ma1(-0.8))
+```
+
+> e. Generate data from an ARMA(1,1) model with $\phi_{1} = 0.6$, $\theta_{1}  = 0.6$ and $\sigma^2=1$.
+
+```{r}
+arma11 <- function(phi, theta, n=100)
+{
+  y <- ts(numeric(100))
+  e <- rnorm(100)
+  for(i in 2:100)
+    y[i] <- phi*y[i-1] + theta*e[i-1] + e[i]
+  return(y)
+}
+autoplot(arma11(0.6,0.6))
+```
+
+> f. Generate data from an AR(2) model with $\phi_{1} =-0.8$, $\phi_{2} = 0.3$ and $\sigma^2=1$. (Note that these parameters will give a non-stationary series.)
+
+```{r}
+ar2 <- function(phi1, phi2, n=100)
+{
+  y <- ts(numeric(100))
+  e <- rnorm(100)
+  for(i in 3:100)
+    y[i] <- phi1*y[i-1] + phi2*y[i-2] + e[i]
+  return(y)
+}
+autoplot(ar2(-0.8,0.3))
+```
+
+> g. Graph the latter two series and compare them.
+
+See graphs above. The non-stationarity of the AR(2) process has led to increasing oscillations
+
+
+# Exercise 6 modelling a daily index series
+
+>For the  series:
+
+> a. if necessary, find a suitable Box-Cox transformation for the data;
+
+```{r}
+tq_get("BP") %>% select(date,adjusted)->BP_price
+BP_price %>% 
+  ggplot(aes(x=date,y=adjusted)) + geom_line()
+```
+
+I don't think a Box-Cox transformation is required.
+
+> b. fit a suitable ARIMA model to the transformed data using `auto.arima()`;
+
+```{r}
+ts(BP_price$y)->BP_ts
+(fit <- auto.arima(BP_ts))
+```
+
+> c. try some other plausible models by experimenting with the orders chosen;
+
+The second order differencing will induce a trend in the forecasts, which is required here, so I will look at changing only $p$ and $q$.
+
+```{r}
+fit010 <- Arima(BP_ts, order=c(0,1,0))
+fit011 <- Arima(BP_ts, order=c(0,1,1))
+fit012 <- Arima(BP_ts, order=c(0,1,2))
+fit013 <- Arima(BP_ts, order=c(0,1,3))
+fit110 <- Arima(BP_ts, order=c(1,1,0))
+fit111 <- Arima(BP_ts, order=c(1,1,1))
+fit112 <- Arima(BP_ts, order=c(1,1,2))
+fit113 <- Arima(BP_ts, order=c(1,1,3))
+fit210 <- Arima(BP_ts, order=c(2,1,0))
+fit211 <- Arima(BP_ts, order=c(2,1,1))
+fit212 <- Arima(BP_ts, order=c(2,1,2))
+fit213 <- Arima(BP_ts, order=c(2,1,3))
+fit310 <- Arima(BP_ts, order=c(3,1,0))
+fit311 <- Arima(BP_ts, order=c(3,1,1))
+fit312 <- Arima(BP_ts, order=c(3,1,2))
+fit313 <- Arima(BP_ts, order=c(3,1,3))
+```
+
+> d. choose what you think is the best model and check the residual diagnostics;
+
+```{r echo=FALSE}
+best <- which.min(c(
+  fit010$aicc,
+  fit011$aicc,
+  fit012$aicc,
+  fit013$aicc,
+  fit110$aicc,
+  fit111$aicc,
+  fit112$aicc,
+  fit113$aicc,
+  fit210$aicc,
+  fit211$aicc,
+  fit212$aicc,
+  fit213$aicc,
+  fit310$aicc,
+  fit311$aicc,
+  fit312$aicc,
+  fit312$aicc
+  ))
+if(best != 10L)
+  stop("Wrong model")
+```
+
+The best according to the AICc values is the ARIMA(2,2,1) model.
+
+```{r}
+checkresiduals(fit010)
+```
+
+The residuals pass the Ljung-Box test, but the histogram looks like it has heavier tails than Gaussian.
+
+> e. produce forecasts of your fitted model. Do the forecasts look reasonable?
+
+```{r}
+fit010 %>% forecast(h=252) %>% autoplot
+```
+
+These look reasonable.
+
+> f. compare the results with what you would obtain using `prophet()` (with no transformation).
+
+```{r}
+library(prophet)
+library(timetk)
+# tsfe::ftse_m_ts %>% tk_tbl(rename_index = "ds") %>% rename(y=adjusted)->ftse
+names(BP_price)<-c("ds","y")
+m<-prophet(BP_price)
+future <- make_future_dataframe(m, periods = 252)
+forecasts_ph<-predict(m,future)
+plot(m, forecasts_ph)
+```
+
+The `prophet` point forecasts are more `wiggly` than the ARIMA forecasts and have a lower confidence interval 
