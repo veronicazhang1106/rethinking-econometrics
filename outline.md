@@ -1,5 +1,6 @@
+---
 [Prerequisite]{style="color: #000000; font-size: 18pt;"}
---------------------------------------------------------
+---
 
 **Research Methods in Finance (FIN9008).**
 
