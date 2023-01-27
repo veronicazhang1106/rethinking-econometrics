@@ -7,7 +7,7 @@ author:
 date: '`r Sys.Date()`'
 output:
   xaringan::moon_reader:
-    self_contained: true
+    embed-resources: standalone 
     css: ["xaringan-themer.css","slides-style.css","mycssblend.css"]
     lib_dir: libs
     nature:
@@ -29,6 +29,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 library(tidyverse)
 library(fontawesome) 
 library(xaringanExtra)
+library(emoji)
 library(xaringanthemer)
 style_mono_accent(
   base_color = "#1c5253",
@@ -55,15 +56,14 @@ class:
 ]
 .pull-right[
 .large[
-  - **Colm Kelly**
-  - ckelly668@qub.ac.uk
-  - Studying for a PhD in Financial Machine Learning.
-  - BSc Mathematics `r fa("plus")` MSc Quantitative Finance
+  - **Veronica Zhang**
+  - yzhang107@qub.ac.uk
+  - Studying for a PhD in capital regulation in chinese banking.
 ]
 ]
 
 ---
-class: middle
+class: middleowa
 # Learning outcomes
 
 
@@ -174,7 +174,7 @@ class: middle
 ]
 .pull-right[
 **Foundational Teaching**
-- RStudio Cloud (200+ students concurrently)
+- Posit Cloud (200+ students concurrently)
 - SSO authentication using Sibboleith
 - Works out of the box
   ]
@@ -204,7 +204,7 @@ knitr::include_graphics("img/sincerely-media-o5Key-1HzaY-unsplash.jpg")
 ---
 class: middle
 
-## What is RStudio Cloud?
+## What is Posit Cloud?
 
 <br>
 
@@ -214,7 +214,7 @@ knitr::include_graphics("img/cloud.png")
 ```
 ]
 .pull-right-wide[
-.large[[**RStudio Cloud**](https://rstudio.cloud/) created to make it easy for professionals, hobbyists, trainers, teachers, and students to do, share, teach, and learn data science using R.]
+.large[[**Posit Cloud**](https://Posit.cloud/) created to make it easy for professionals, hobbyists, trainers, teachers, and students to do, share, teach, and learn data science using R.]
 ]
 
 ---
@@ -242,7 +242,7 @@ class: middle
 
 ## First look
 
-.large[[https://sso.rstudio.cloud/q-rap](https://sso.rstudio.cloud/q-rap)]
+.large[[https://sso.posit.cloud/q-rap](https://sso.posit.cloud/q-rap)]
 
 ```{r echo=FALSE, out.width="80%", fig.align="center"}
 knitr::include_graphics("img/q-rap-landing-1.png")
@@ -253,7 +253,7 @@ knitr::include_graphics("img/q-rap-landing-1.png")
 class: middle
 .your-turn[
 
-#### `r emo::ji("woman_technologist")` Students:
+#### `r emoji("woman_technologist")` Students:
 - login to Q-RaP using your QUB credentials
 - Create a new project and give it a name
 - Install a package of your choice
@@ -277,11 +277,13 @@ class: middle
     
 ## Active learning and the 15 minute rule
 
-<iframe width="300"
-    height="200"
-    title="Batman's growth mindset"
-    src="https://youtu.be/ZS8QHRtzcPg">
-</iframe>
+![](https://youtu.be/ZS8QHRtzcPg)
+
+<!-- <iframe width="300" -->
+<!--     height="200" -->
+<!--     title="Batman's growth mindset" -->
+<!--     src="https://youtu.be/ZS8QHRtzcPg"> -->
+<!-- </iframe> -->
 
   - We will use the **15 minute** rule in this class.
   - If you encounter problems, spend 15 minutes troubleshooting on your own.
@@ -433,7 +435,7 @@ class: middle
 
 ## Ethical econometrics using Open Science
 .large[
-  - Using RStudio, Git, Github.
+  - Using Quarto, Git, Github.
   - An industry standard for modern statistical analysis.
   - Creates reusable, transparent, and interpretable code.
   - Ethical econometrics is about creating reproducible research.
@@ -638,4 +640,4 @@ Slides created via the R packages:
 [**xaringan**](https://github.com/yihui/xaringan)<br>
 [gadenbuie/xaringanthemer](https://github.com/gadenbuie/xaringanthemer)
 
-The chakra comes from [remark.js](https://remarkjs.com), [**knitr**](http://yihui.name/knitr), and [R Markdown](https://rmarkdown.rstudio.com).
+The chakra comes from [remark.js](https://remarkjs.com), [**knitr**](http://yihui.name/knitr), and [R Quarto](https://quarto.org).
