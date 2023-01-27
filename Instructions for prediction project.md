@@ -1,3 +1,5 @@
+## IGNORE THIS FOR 2023
+
 ## Collaborating on the prediction project using q-rap rstudio cloud and GitHub class organisation Teams
 
 The class organisation [here](https://github.com/Time-series-financial-econometrics)  includes some one [Team](https://docs.github.com/en/organizations/organizing-members-into-teams/about-teams) for every rethinking prediction project.  If you have decided to do the project individually you will be in a team of one.  The lecturer has created these teams and add write/read permission for team members.  As the admin user the lecturer and teaching assistant are also members of these teams. 
