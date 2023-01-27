@@ -310,6 +310,8 @@ class: middle
 
 ## Important Dates
 
+ * Project Deadline 31st March
+ * Computer based exam (after easter break)
 
 
 ---
