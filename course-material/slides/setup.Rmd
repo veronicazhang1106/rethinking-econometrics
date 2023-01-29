@@ -29,15 +29,11 @@ library(tidyquant)
 library(knitr)
 library(DT)
 theme_set(theme_tq(base_size = 14))
-library(tsfe)
+#library(tsfe)
 MyDeleteItems<-ls()
 rm(list=MyDeleteItems)
 library(latex2exp)
 theme_set(theme_dark(base_size = 10))
-library(tidyquant)
-library(bayesforecast)
-library(tsfe)
-theme_set(theme_tq(base_size = 6))
 style_mono_accent(
   base_color = "#1c5253",
   header_font_google = google_font("Josefin Sans"),
