@@ -14,7 +14,6 @@ output:
       highlightLines: true
       countIncrementalSlides: false
       ratio: "16:9"
-      beforeInit: "https://platform.twitter.com/widgets.js"
     seal: true 
 ---
 ```{r child = "../setup.Rmd"}
@@ -60,9 +59,9 @@ class: middle
 ### .pink[Doing financial data science]
 - .pink[Programming:]
   - .pink[R]
-  - .pink[RStudio]
+  - .pink[Posit (Formerly RStudio)]
   - .pink[tidyverse]
-  - .pink[R Markdown]
+  - .pink[Quarto]
 - .gray[Version control and collaboration:]
   - .gray[Git]
   - .gray[GitHub]
@@ -121,7 +120,7 @@ class: middle
 ## Toolkit for reproducibility
 
 - Scriptability $\rightarrow$ R
-- Literate programming (code, narrative, output in one place) $\rightarrow$ R Markdown
+- Literate programming (code, narrative, output in one place) $\rightarrow$ Quarto
 - Version control $\rightarrow$ Git / GitHub
 
 ---
@@ -234,40 +233,17 @@ knitr::include_graphics("../img/tidyverse.png")
 ]
 
 ---
-
 class: middle
+# Quarto
 
-## rmarkdown
-
-.pull-left[
 .center[.large[
-[rmarkdown.rstudio.com](https://rmarkdown.rstudio.com/)
+[quarto.org](https://quarto.org`/)
 ]]
 
-- **rmarkdown** and the various packages that support it enable R users to write their code and prose in reproducible computational documents
-- We will generally refer to R Markdown documents (with `.Rmd` extension), e.g. *"Do this in your R Markdown document"* and rarely discuss loading the rmarkdown package
-]
+- **Quarto** and the various packages that support it enable R users to write their code and prose in reproducible computational documents
 
-.pull-right[
-```{r echo=FALSE, out.width="60%"}
-knitr::include_graphics("../img/rmarkdown.png")
-```
-]
+- We will generally refer to Quarto documents (with `.qmd` extension), e.g. *"Do this in your Quarto document"* and rarely discuss loading the Quarto
 
----
-
-class: middle
-
-# R Markdown
-
----
-
-
-## R Markdown
-
-- Fully reproducible reports -- each time you knit the analysis is ran from the beginning
-- Simple markdown syntax for text
-- Code goes in chunks, defined by three backticks, narrative goes outside of chunks
 
 ---
 
