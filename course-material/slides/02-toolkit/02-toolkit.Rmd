@@ -1,6 +1,6 @@
 ---
 title: "FIN7030: Times Series Financial Econometrics 2" 
-subtitle: "Meet the toolkit:<br>programming"
+subtitle: "Meet the toolkit:<br> R <br> Git <br> Posit <br> Quarto ..."
 author: "Barry Quinn"
 date: "`r Sys.Date()`"
 output:
@@ -126,7 +126,7 @@ class: middle
 ---
 class: middle
 
-## R and RStudio
+## R and Posit
 
 .pull-left[
 ```{r echo=FALSE, out.width="25%"}
@@ -140,8 +140,8 @@ knitr::include_graphics("../img/r-logo.png")
 ```{r echo=FALSE, out.width="50%"}
 knitr::include_graphics("../img/rstudio-logo.png")
 ```
-- RStudio is a convenient interface for R called an **IDE** (integrated development environment), e.g. *"I write R code in the RStudio IDE"*
-- RStudio is not a requirement for programming with R, but it's very commonly used by R programmers and data scientists
+- Posit is a convenient interface for R called an **IDE** (integrated development environment), e.g. *"I write R code in the Posit IDE"*
+- Posit is not a requirement for programming with R, but it's very commonly used by R programmers and data scientists
 ]
 
 
@@ -152,7 +152,7 @@ class: inverse
 
 - **Packages** are the fundamental units of reproducible R code. They include reusable R functions, the documentation that describes how to use them, and sample data<sup>1</sup>
 
-- As of September 2020, there are over 16,000 R packages available on **CRAN** (the Comprehensive R Archive Network)<sup>2</sup>
+- As of September 2022, there are over near 20,000 R packages available on **CRAN** (the Comprehensive R Archive Network)<sup>2</sup>
 
 - We're going to work with a small (but important) subset of these!
 
@@ -164,7 +164,7 @@ class: inverse
 
 ---
 
-## Tour: R and RStudio
+## Tour: R and Posit
 
 ```{r echo=FALSE, out.width="80%"}
 knitr::include_graphics("../img/tour-r-rstudio.png")
@@ -240,112 +240,17 @@ class: middle
 [quarto.org](https://quarto.org`/)
 ]]
 
-- **Quarto** and the various packages that support it enable R users to write their code and prose in reproducible computational documents
+- Easy to use interface - Quarto Scientific Publishing Software provides a user-friendly interface that makes it easy to create, edit, and publish scientific documents.
 
-- We will generally refer to Quarto documents (with `.qmd` extension), e.g. *"Do this in your Quarto document"* and rarely discuss loading the Quarto
+- Comprehensive content management - Quarto Scientific Publishing Software allows users to easily manage their content, including text, images, and multimedia.
 
+-  Automated workflow - Quarto Scientific Publishing Software automates the publishing process, from content creation to publication.
 
----
+- Customizable templates - Quarto Scientific Publishing Software allows users to customize templates to ensure consistency in their documents.
 
-## Tour: R Markdown
+- Secure platform - Quarto Scientific Publishing Software provides a secure platform with strong encryption and authentication systems to protect user data.
 
-```{r echo=FALSE, out.width="90%"}
-knitr::include_graphics("../img/tour-rmarkdown.png")
-```
-
----
-class: middle
-
-## Environments
-
-.acid[
-The environment of your R Markdown document is separate from the Console!
-]
-
-Remember this, and expect it to bite you a few times as you're learning to work 
-with R Markdown!
-
----
-
-class: middle
-
-## Environments
-
-.pull-left[
-First, run the following in the console
-
-.large[
-```{r eval = FALSE}
-x <- 2
-x * 3
-```
-]
-
-.acid[
-All looks good, eh?
-]
-]
-
---
-
-.pull-right[
-Then, add the following in an R chunk in your R Markdown document
-
-.large[
-```{r eval = FALSE}
-x * 3
-```
-]
-
-.acid[
-What happens? Why the error?
-]
-]
-
----
-class: middle
-
-## R Markdown help
-
-.pull-left[
-.center[
-.midi[R Markdown Cheat Sheet  
-`Help -> Cheatsheets`]
-]
-```{r echo=FALSE, out.width="80%"}
-knitr::include_graphics("../img/rmd-cheatsheet.png")
-```
-]
-.pull-right[
-.center[
-.midi[Markdown Quick Reference  
-`Help -> Markdown Quick Reference`]
-]
-```{r echo=FALSE, out.width="80%"}
-knitr::include_graphics("../img/md-cheatsheet.png")
-```
-]
-
----
-
-## How will we use R Markdown?
-
-- Every assignment / report / project / etc. is an R Markdown document
-- You'll always have a template R Markdown document to start with
-- The amount of scaffolding in the template will decrease over the semester
-
----
-class: middle
-
-## What's with all the hexes?
-
-```{r echo=FALSE, out.width="60%"}
-knitr::include_graphics("../img/hex-australia.png")
-```
-
-.footnote[
-Mitchell O'Hara-Wild, [useR! 2018 feature wall](https://www.mitchelloharawild.com/blog/user-2018-feature-wall/)
-]
+.fancy[More on Quarto in next lecture]
 
 ---
 class:middle
@@ -442,7 +347,7 @@ class: middle
 
 --
 
-- We will be doing Git things and interfacing with GitHub through RStudio, but if you google for help you might come across methods for doing these things in the command line `r fa(name="terminal")` -- skip that and move on to the next resource unless you feel comfortable trying it out.
+- We will be doing Git things and interfacing with GitHub through Posit, but if you google for help you might come across methods for doing these things in the command line `r fa(name="terminal")` -- skip that and move on to the next resource unless you feel comfortable trying it out.
 
 --
 
@@ -473,7 +378,7 @@ class: middle
 - Go to [Github.com](https://github.com) and create an account using your QUB credentials.
 - Login to the [Slack channel](https://join.slack.com/t/rethinkingeco-3ss9716/shared_invite/zt-12nfdfr7o-XAy2Ef1knAKXgUNo2kWw3w) and share your username with the lecturer.
 - Create a new repository on Github called 'first repo'
-- Create a new project on your Q-RaP RStudio Cloud account by using the url of your first repo
+- Create a new project on your Q-RaP Posit Cloud account by using the url of your first repo
 - create a Rmarkdown file in new RStudio project space.
 - Knit the Rmarkdown file to a html file.
 - Commit and push change to your Github repo.
