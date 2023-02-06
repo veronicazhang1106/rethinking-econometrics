@@ -1,12 +1,13 @@
 ---
-title: "HW 01 - R, RStudio, Git, and GitHub"
+title: "HW 01 - R, Posit, Git, and GitHub"
 subtitle: "Meet the toolkit"
 output: 
-  tufte::tufte_html:
+  html:
     css: ../hw.css
-    tufte_variant: "envisioned"
-    highlight: pygments
 link-citations: yes
+editor: 
+  markdown: 
+    wrap: sentence
 ---
 
 ```{r include = FALSE}
@@ -21,8 +22,7 @@ library(rosdata)
 library(ggrepel)
 ```
 
-
-The goal of this assignment is to introduce you to R, RStudio, Git, and GitHub, which you'll be using throughout the course both to learn the data science concepts discussed in the course and to analyze real data and come to informed conclusions.
+The goal of this assignment is to introduce you to R, Posit, Git, and GitHub, which you'll be using throughout the course both to learn the data science concepts discussed in the course and to analyze real data and come to informed conclusions.
 
 # Getting started
 
@@ -37,7 +37,7 @@ We've already thrown around a few new terms, so let's define them before we proc
 
 -   **R:** Name of the programming language we will be using throughout the course.
 
--   **RStudio:** An integrated development environment for R.
+-   **Posit:** An integrated development environment for R.
     In other words, a convenient interface for writing and running R code.
 
 -   **Git:** A version control system.
@@ -63,24 +63,24 @@ Before you can get started with the analysis, you need to make sure you:
 
 -   are a member of the course GitHub organization (share your username and email with lecturer to receive an invite)
 
--   are a member of the course RStudio Cloud space (See Canvas Announcements for details)
+-   are a member of the course Posit Cloud space (See Canvas Announcements for details)
 
 If you failed to confirm any of these, it means you have not yet completed the prerequisites for this assignment.
 Please go back to [Prerequisites] and complete them before continuing the assignment.
 
 # Workflow
 
-```{marginfigure}
+::: callout-note
 **IMPORTANT:** If there is no GitHub repo created for you for this assignment, it means I didn't have your GitHub username as of when I assigned the homework. Please let me know your GitHub username asap, and I can create your repo.
-```
+:::
 
 For each assignment in this course you will start with a GitHub repo that I created for you and that contains the starter documents you will build upon when working on your assignment.
-The first step is always to bring these files into RStudio so that you can edit them, run them, view your results, and interpret them.
+The first step is always to bring these files into Posit so that you can edit them, run them, view your results, and interpret them.
 This action is called **cloning**.
 
-Then you will work in RStudio on the data analysis, making **commits** along the way (snapshots of your changes) and finally **push** all your work back to GitHub.
+Then you will work in Posit on the data analysis, making **commits** along the way (snapshots of your changes) and finally **push** all your work back to GitHub.
 
-The next few steps will walk you through the process of getting information of the repo to be cloned, cloning your repo in a new RStudio Cloud project, and getting started with the analysis.
+The next few steps will walk you through the process of getting information of the repo to be cloned, cloning your repo in a new Posit Cloud project, and getting started with the analysis.
 
 ### Step 1. Get URL of repo to be cloned
 
@@ -91,7 +91,7 @@ knitr::include_graphics("img/clone-repo-link.png")
 On GitHub, click on the green **Code** button, select **HTTPS** (this might already be selected by default, and if it is, you'll see the text *Use Git or checkout with SVN using the web URL* jas in the image on the right).
 Click on the clipboard icon 📋 to copy the repo URL.
 
-### Step 2. Go to RStudio Cloud
+### Step 2. Go to Q-RaP on Posit Cloud
 
 Go to [qrap.rstudio.cloud](https://sso.rstudio.cloud/q-rap) and then **navigate to the course workspace** via the left sidebar.
 It's very important that you do this for two reasons:
@@ -132,9 +132,12 @@ knitr::include_graphics("img/rstudio-anatomy.png")
 
 Before we introduce the data, let's warm up with some simple exercises.
 
-```{marginfigure}
-The top portion of your R Markdown file (between the three dashed lines) is called **YAML**. It stands for "YAML Ain't Markup Language". It is a human friendly data serialization standard for all programming languages. All you need to know is that this area is called the YAML (we will refer to it as such) and that it contains meta information about your document.
-```
+::: callout-note
+The top portion of your R Markdown file (between the three dashed lines) is called **YAML**.
+It stands for "YAML Ain't Markup Language".
+It is a human friendly data serialization standard for all programming languages.
+All you need to know is that this area is called the YAML (we will refer to it as such) and that it contains meta information about your document.
+:::
 
 ## Step 1. Update the YAML
 
@@ -146,7 +149,7 @@ knitr::include_graphics("img/yaml-raw-to-rendered.png")
 
 ## Step 2: Commit
 
-Then Go to the **Git pane** in your RStudio.
+Then Go to the **Git panel** in your RStudio.
 
 You should see that your Rmd (R Markdown) file and its output, your md file (Markdown), are listed there as recently changed files.
 
@@ -181,7 +184,9 @@ This might feel cumbersome.
 Bear with me... I *will* teach you how to save your password so you don't have to enter it every time.
 But for this one assignment you'll have to manually enter each time you push in order to gain some experience with it.
 
-**Thought exercise:** Which of the above steps (updating the YAML, committing, and pushing) needs to talk to GitHub?[^hw-01-git-R]
+**Thought exercise:** Which of the above steps (updating the YAML, committing, and pushing) needs to talk to GitHub?[^1]
+
+[^1]: Only pushing requires talking to GitHub, this is why you're asked for your password at that point.
 
 # Packages
 
@@ -233,9 +238,9 @@ You can find out more about the dataset by inspecting its documentation (which c
 
 3.  How many of the evaluations are for female professors? To do this you will need to count the frequencies of female indicator variable and display the results. The following code does exactly that.
 
-```{marginfigure}
+::: callout-note
 The two lines of code can be read as "Start with the beauty data frame, and then count the sum up the binary variable female, and display the results. The 'and then' in the previous sentence maps to %>%, the pipe operator, which takes what comes before it and plugs it in as the first argument of the function that comes after it."
-```
+:::
 
 ```{r}
 beauty %>%
@@ -247,9 +252,9 @@ beauty %>%
 Let's also look how many professors there are at each age range and what is the dominant sex.
 For this we need to first `group_by()` the `age`, and then do the same counting we did before but using `tally()`.
 
-```{marginfigure}
+::: callout-note
 Older professors are not as common
-```
+:::
 
 ```{r prof-ages, eval=TRUE}
 beauty %>% 
@@ -259,7 +264,6 @@ beauty %>%
 
 But this output isn't exactly what we wanted.
 We wanted to know the most common sex of professors at each age.
-
 
 ```{r professors_sex, eval=TRUE}
 beauty %>%
@@ -296,8 +300,6 @@ ggplot(beauty, aes(x = eval, y = beauty)) +
   geom_smooth(method='lm',se = FALSE)
 ```
 
-1.  Is the relationship between the two variables  positive or negative? What does this mean in context of the data?
+1.  Is the relationship between the two variables positive or negative? What does this mean in context of the data?
 
 🧶 ✅ ⬆️ *Now is a good time to commit and push your changes to GitHub with an appropriate commit message. Commit and push all changed files so that your Git pane is cleared up afterwards. Make sure that your last push to the repo comes before the deadline. You should confirm that what you committed and pushed are indeed in your repo that we will see by visiting your repo on GitHub.*
-
-[^hw-01-git-R]: Only pushing requires talking to GitHub, this is why you're asked for your password at that point.

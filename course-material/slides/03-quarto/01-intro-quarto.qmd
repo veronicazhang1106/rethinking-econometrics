@@ -2,6 +2,7 @@
 format: 
   revealjs:
     slide-number: true
+    chalkboard: true
     width: 1920
     height: 1080
     logo: "img/qmslogo.png"
