@@ -1,5 +1,5 @@
 ---
-title: "FIN7028: Times Series Financial Econometrics 3"
+title: "FIN7028: Times Series Financial Econometrics 4"
 subtitle: "Statistical inference"
 author: "Barry Quinn PhD CStat"
 date: "`r Sys.Date()`"
@@ -27,6 +27,9 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE,out.width = "60%")
 library(tidyverse)
 pacman::p_load('tidyverse','fontawesome','xaringanExtra','xaringanthemer','bayesplot','arm')
 use_panelset()
+library(rstanarm)
+library(bayesplot)
+library(tidyverse)
 use_tile_view()
 style_mono_accent(
   base_color = "#1c5253",
@@ -379,43 +382,51 @@ class: middle
 ## Computing least squares and Bayesian regressions
 
 ```{r,include=FALSE}
-source('setup.R')
+profbeautyeval <- read_csv("profbeautyeval.csv")
 ```
 
+---
+class: middle
 
-.panelset[
-.panel[
-.panel-name[Beauty and teaching evaluations]
+## Professor beauty and teaching evaluations
 
-![](beauty.png){width="50%"}
+![](beauty.png)
+---
+class: middle
 
-]
-.panel[.panel-name[Frequentist inferennce]
-Does beauty predict student evaluations?
+## Frequentist inferennce
+
+### Does beauty predict student evaluations?
+
 ```{r}
-display(lm(eval~beauty,data=beauty))
+display(lm(eval~beauty,data=profbeautyeval))
 ```
-]
-.panel[.panel-name[Bayesian inference]
-```{r bayesian}
-library(rstanarm)
-library(bayesplot)
-library(tidyverse)
-options(mc.cores = parallel::detectCores())
-m1<-stan_glm(eval~beauty,data=beauty,algorithm='optimizing')
-```
-]
-.panel[.panel-name[Bayesian regression output]
 
-.small[
+---
+class: middle
+
+## Bayesian inference
+
+```{r bayesian, echo=TRUE, eval=FALSE}
+options(mc.cores = parallel::detectCores())
+m1<-stan_glm(eval~beauty,data=profbeautyeval,algorithm='optimizing')
+```
+
+---
+class: middle
+
+## Bayesian regression output
 
 ```{r, out.height="50%"}
+m1<-readRDS("bayesmodel.rds")
 summary(m1, digits = 2)
 ```
 
-]
-]
-.panel[.panel-name[Plotting the uncertainty]
+---
+class: middle
+
+## Plotting the uncertainty
+
 ```{r echo=FALSE}
 posterior <- as.matrix(m1)
 plot_title <- ggtitle("Posterior distributions",
@@ -425,8 +436,6 @@ mcmc_areas(posterior,
            prob = 0.8) + plot_title
 ```
 
-]
-]
 
 ---
 class: middle, center, hide-logo
