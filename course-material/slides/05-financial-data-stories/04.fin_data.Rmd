@@ -1,5 +1,5 @@
 ---
-title: "FIN7028: Times Series Financial Econometrics 3" 
+title: "FIN7028: Times Series Financial Econometrics 5" 
 subtitle: "Financial data stories"
 author: "Barry Quinn"
 date: "`r Sys.Date()`"
@@ -35,7 +35,7 @@ style_mono_accent(
   text_font_google   = google_font("Montserrat", "300", "300i"),
   code_font_google   = google_font("Fira Mono")
   )
-load("~/Dropbox/Teaching/TSFE/data/fin7028_dat.RData")
+load("fin7028_dat.RData")
 ```
 
 class: middle
