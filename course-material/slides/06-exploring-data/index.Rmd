@@ -124,7 +124,6 @@ class: middle
 
 `tidyquant` loads:
 
-* **tq_get** function (for getting data from online sources)
 * **tq_transmute** function (for transforming between time frequencies)
 * **tq_mutate** function (create return series)
 
@@ -164,8 +163,8 @@ class: middle
 ## Programmatically accessing data from the `r fa(name = 'cloud',fill = 'lightblue')`
 
 .pull-left[
-* Using WRDS (more later)
-* Download data using `tg_get`
+* Using WRDS (In the next homework I will show you how to downland month stock prices for projects)
+<!-- * Download data using `tg_get` -->
 * Create a monthly series using `tq_transmute`
 
 ```{r, echo=TRUE,eval=FALSE}
@@ -336,7 +335,7 @@ class: middle
 .panel-name[custom-made R function]
 - The coding for simulation becomes cleaner if we express the steps for a single simulation in an `r fa(name="r-project",fill="blue")` function.
 
-```{r custom function}
+```{r custom function,echo=TRUE}
 path_sim <- function(){
   days <- 200
   changes <- rnorm(200,mean=1.001,sd=0.005)
