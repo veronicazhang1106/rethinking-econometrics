@@ -1,0 +1,928 @@
+---
+title: "FIN7028: Times Series Financial Econometrics 7" 
+subtitle: "Rethinking financial prediction"
+author: "Barry Quinn"
+date: "`r Sys.Date()`"
+output:
+  xaringan::moon_reader:
+    self_contained: true
+    css: ["xaringan-themer.css","../mycssblend.css","../slides-style.css"]
+    lib_dir: libs
+    nature:
+      self_contained: true
+      countdown: 150000
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+      beforeInit: "https://platform.twitter.com/widgets.js"
+    seal: true 
+    includes:
+      in_header: "mathjax-equation-numbers.html"
+---
+```{r child = "../setup.Rmd"}
+```
+
+```{r setup1, include=FALSE}
+options(htmltools.dir.version = FALSE)
+library(knitr)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(tidyverse)
+library(fontawesome) 
+library(xaringanExtra)
+library(xaringanthemer)
+library(tsfe)
+library(fpp2)
+style_mono_accent(
+  base_color = "#1c5253",
+  header_font_google = google_font("Josefin Sans"),
+  text_font_google   = google_font("Montserrat", "300", "300i"),
+  code_font_google   = google_font("Fira Mono")
+  )
+```
+
+.acid[
+.hand[Learning Outcomes]
+- Simple (but useful) forecasting techniques
+- Internal validation
+- External validation
+- Prediction uncertainty
+- Model complexity and sample size
+]
+
+---
+class: middle
+
+## Rethinking forecasting
+
+* Terminology in econometrics can sometimes be confusing.
+* The terms **forecasting** and **prediction** are used interchangably.
+* **Prediction** can sometimes refer to the in-sample predictions from the estimated model
+* In this course we will refer to these as **fitted values** or **retrodictions**
+* In this course forecasting and prediction will mean:
+
+  **determining the value that a series is likely to take**
+
+---
+class: middle
+
+## Some simple forecasting methods
+
+```{r usd_gbp, fig.height=3}
+tsfe::usuk_rate %>%
+  filter(date>=as.Date("2015-01-01")) %>%
+  drop_na() %>%
+  ggplot(aes(x=date, y=price )) +
+  geom_line(colour="blue") +
+  labs(title="U.S./U.K. Foreign Exhange Rate (Daily)",
+       x="",
+       y="US Dollars to one British Pound")
+```
+
+---
+class: middle
+
+# How would you forecast these data?
+
+.pull-left[
+#### Average method
+
+  * Forecast of all future values is equal to mean of historical data $\{y_1,\dots,y_T\}$.
+  * Forecasts: $\hat{y}_{T+h|T} = \bar{y} = (y_1+\dots+y_T)/T$
+
+#### Naïve method
+
+  * Forecasts equal to last observed value.
+  * Forecasts: $\hat{y}_{T+h|T} =y_T$.
+  * Consequence of efficient market hypothesis.
+
+]
+.pull-right[
+#### Seasonal naïve method
+
+* Forecasts equal to last value from same season.
+  * Forecasts: $\hat{y}_{T+h|T} =y_{T+h-m(k+1)}$, where $m=$ seasonal period and $k$ is the integer part of $(h-1)/m$.
+
+#### Drift method
+
+* Forecasts equal to last value plus average change.
+* Forecasts
+
+$$\hat{y}_{T+h|T} =  y_{T} + \frac{h}{T-1}\sum_{t=2}^T (y_t-y_{t-1})$$
+
+$$\hat{y}_{T+h|T} = y_T + \frac{h}{T-1}(y_T -y_1)$$
+
+* Equivalent to extrapolating a line drawn between first and last observations.
+]
+
+---
+class: middle
+
+## Some simple forecasting methods
+
+.pull-left-2[
+```{r usdgbp}
+# Set training data to first 1000 days
+usdgbp_ts <- ts(tsfe::usuk_rate %>%
+  filter(date>=as.Date("2015-01-01")) %>%
+  drop_na() %>% select(price) %>% unlist())
+usdgbp_ts2<-window(usdgbp_ts,end=1000)
+
+autoplot(usdgbp_ts2) +
+  autolayer(meanf(usdgbp_ts2, h=250), PI=FALSE, series="Mean") +
+  autolayer(rwf(usdgbp_ts2, h=250), PI=FALSE, series="Naïve") +
+  autolayer(rwf(usdgbp_ts2, drift=TRUE, h=250), PI=FALSE, series="Drift") +
+  ggtitle("USD/GBP exchange rate (daily ending 01 Jan 19)") +
+  xlab("Day") + ylab("") +
+  guides(colour=guide_legend(title="Forecast"))
+```
+]
+.pull-right-1[
+## Some simple forecasting methods
+
+  * Mean: `meanf(y, h=24)`
+  * Naïve:  `naive(y, h=24)`
+  * Seasonal naïve: `snaive(y, h=24)`
+  * Drift: `rwf(y, drift=TRUE, h=24)`
+]
+
+---
+class: middle
+
+.your-turn[
+
+ * Use these four functions to produce forecasts for `ni_hsales_ts` and `glen_m_ts`.
+ * Plot the results using `autoplot()`.
+]
+
+---
+class: middle
+
+## Rethinking econometrics
+
+* Adjustments or transformations of the historical data can lead to a simpler forecasting task.
+* They simplify data patterns by:
+    1. removing known sources of variation.
+    2. making the pattern more consistent across the whole data set.
+* Simpler patterns usually lead to more accurate forecasts.
+  
+---
+class: middle
+
+.pull-left[
+## Rethinking econometrics
+
+  * For explaining tasks data transformations simplify patterns but may also manufacture overconfidence.
+  * Frequently, scholars pre-average some data to construct variables for regression analysis.
+  * Averaging can be dangerous as it removes variation.
+  * One solution in explaining tasks is to use multilevel models, which preserve uncertainty in the original, pre-averaged values, while still using the average to make predictions.
+]
+  
+.pull-right[
+
+## Inflation adjustments
+
+* Data which is affected by the value of money are best adjusted before modelling.
+* Financial time series are usually adjusted so that all values are stated in dollar values from a particular year.
+* The adjustment is made using a price index.
+* If $z_t$ denotes the UK consumer price index and $y_t$ denotes the nomimal value of the QSMF in month $t$ then $x_t=y_t/z_t \times z_{\text{May 2016}}$ gives the adjusted (real) QSMF value at May 2016 prices.
+]
+
+---
+class: middle
+
+# Residual diagnostics
+
+.pull-left[
+## Fitted values (retrodictions)
+
+- $\hat{y}_{t|t-1}$ is the forecast of $y_t$ based on observations $y_1,\dots,y_{t-1}$.
+- We call these "fitted values" and always involve a one-step ahead forecast.
+- Sometimes drop the subscript: $\hat{y}_t \equiv \hat{y}_{t|t-1}$.
+- Often not true forecasts since parameters are estimated on all data.
+- In terms of terminology calling these *retrodictions* is more meaningful
+]
+
+.pull-right[
+### For example:
+
+- $\hat{y}_{t} = \bar{y}$ for average method.
+- $\hat{y}_{t} = y_{t-1} + (y_{T}-y_1)/(T-1)$ for drift method.
+
+]
+
+---
+class: middle
+
+.blockquote.large[
+**Residuals in forecasting:** difference between observed value and its fitted value: $e_t = y_t-\hat{y}_{t|t-1}$.
+]
+
+## Assumptions
+
+1. $\{e_t\}$ uncorrelated. If they aren't, then information left in residuals that should be used in computing forecasts.
+2. $\{e_t\}$ have mean zero. If they don't, then forecasts are biased.
+
+## Useful properties (for prediction intervals)
+
+3. $\{e_t\}$ have constant variance.
+4. $\{e_t\}$ are normally distributed.
+
+---
+class: middle
+
+## Example: FTSE index price
+
+.panelset[
+.panel[
+.panel-name[plot]
+```{r ftse1, out.width="50%"}
+autoplot(ftse_m_ts) +
+  xlab("Year") + ylab("FTSE 100 Index Price") +
+  ggtitle("FTSE (monthly ending December 2020)")
+```
+]
+.panel[
+.panel-name[Naive Forecast]
+
+$$\hat{y}_{t|t-1}= y_{t-1}$$
+$$e_t = y_t-y_{t-1}$$
+
+>Note: $e_t$ are one-step-forecast residuals
+
+]
+.panel[
+.panel-name[Code + Output]
+```{r, out.width="50%"}
+fits<-fitted(naive(ftse_m_ts))
+autoplot(ftse_m_ts, series="Data") +
+  autolayer(fits, series="Fitted") +
+  xlab("Year") + ylab("FTSE 100 Index Price") +
+  ggtitle("FTSE (monthly ending December 2020)")
+```
+]
+.panel[
+.panel-name[Diagnostics]
+```{r, out.width="50%"}
+res <- residuals(naive(ftse_m_ts))
+autoplot(res) + xlab("Year") + ylab("residuals") +
+  ggtitle("FTSE (monthly ending December 2020)")
+```
+]
+.panel[
+.panel-name[Diagnostic]
+```{r ftse4, warning=FALSE,echo=F,fig.align="center",out.width="50%"}
+res <- residuals(naive(ftse_m_ts))
+gghistogram(res, add.normal=TRUE) +
+  ggtitle("Histogram of residuals")
+```
+]
+.panel[
+.panel-name[ACF]
+```{r ftse5,out.width="50%"}
+ggAcf(res) + ggtitle("ACF of residuals")
+```
+]
+]
+
+---
+class: middle
+
+## ACF of residuals
+
+* We assume that the residuals are white noise (uncorrelated, mean zero, constant variance). If they aren't, then there is information left in the residuals that should be used in computing forecasts.
+
+* So a standard residual diagnostic is to check the ACF of the residuals of a forecasting method.
+
+* We *expect* these to look like white noise.
+
+---
+class: middle
+
+## `checkresiduals` function
+
+```{r ftse7, echo=TRUE, fig.height=3}
+checkresiduals(naive(ftse_m_ts))
+```
+
+---
+class: inverse, center
+
+.salt[Evaluating forecast accuracy]
+
+---
+class: middle
+
+## Training and test sets
+
+```{r traintest, fig.height=1, echo=FALSE, cache=TRUE}
+train = 1:18
+test = 19:24
+par(mar=c(0,0,0,0))
+plot(0,0,xlim=c(0,26),ylim=c(0,2),xaxt="n",yaxt="n",bty="n",xlab="",ylab="",type="n")
+arrows(0,0.5,25,0.5,0.05)
+points(train, train*0+0.5, pch=19, col="blue")
+points(test,  test*0+0.5,  pch=19, col="red")
+text(26,0.5,"time")
+text(10,1,"Training data",col="blue")
+text(21,1,"Test data",col="red")
+```
+
+- A model which fits the training data well will not necessarily forecast well.
+- A perfect fit can always be obtained by using a model with enough parameters.
+- Over-fitting a model to data is just as bad as failing to identify a systematic pattern in the data.
+* The test set must not be used for *any* aspect of model development or calculation of forecasts.
+* Forecast accuracy is based only on the test set.
+
+---
+class: middle
+
+### Forecast errors
+
+Forecast "error": the difference between an observed value and its forecast.
+
+$$e_{T+h} = y_{T+h} - \hat{y}_{T+h|T},$$
+
+where the training data is given by $\{y_1,\dots,y_T\}$
+
+- Unlike residuals, forecast errors on the test set involve multi-step forecasts.
+- These are *true* forecast errors as the test data is not used in computing $\hat{y}_{T+h|T}$.
+
+---
+class: middle
+
+## Measures of forecast accuracy
+
+```{r returnsaccuracy,fig.align="center"}
+glen_m_ts1 <- window(glen_m_r,end=c(2018,12))
+glenfit1 <- meanf(glen_m_ts1,h=26)
+glenfit2 <- rwf(glen_m_ts1,h=26)
+glenfit3 <- snaive(glen_m_ts1,h=26)
+tmp <- cbind(Data=glen_m_r,
+             Mean=glenfit1[["mean"]],
+             Naive=glenfit2[["mean"]],
+             SeasonalNaive=glenfit3[["mean"]])
+autoplot(tmp) + xlab("Year") + ylab("monthly return") +
+  ggtitle("Forecasts for glencore monthly return") +
+  scale_color_manual(values=c('#000000','#1b9e77','#d95f02','#7570b3'),
+                     breaks=c("Mean","Naive","SeasonalNaive"),
+                     name="Forecast Method")
+```
+
+---
+class: middle
+
+## Measures of forecast accuracy
+
+- $y_{T+h}$ is $(T+h)$ th observation, $h=1,\dots,H$
+- $\hat{y}^{T+h}_{T}$ is the forecast based on data up to time $T$ 
+- $e_{T+h} = y_{T+h} - {y}^{T+h}_{T}$ 
+
+$$\text{MAE} = \text{mean}(|e_{T+h}|)$$
+
+$$\text{MSE} = \text{mean}(e_{T+h}^2) \qquad$$
+$$\text{RMSE} = \sqrt{\text{mean}(e_{T+h}^2)}$$
+
+$$\text{MAPE} = 100\text{mean}(|e_{T+h}|/ |y_{T+h}|)$$
+* MAE, MSE, RMSE are all scale dependent.
+* MAPE is scale independent but is only sensible if $y_t\gg 0$ for all $t$, and $y$ has a natural zero.
+
+---
+class: middle
+
+## Measures of forecast accuracy
+
+.blockquote[
+.large[Mean Absolute Scaled Error]
+$$
+\text{MASE} = \text{mean}(|e_{T+h}|/Q)
+$$
+where $Q$ is a stable measure of the scale of the time series $\{y_t\}$.
+<br>
+.hand[Proposed by Hyndman and Koehler (IJF, 2006).]
+
+- For non-seasonal time series,
+
+$$Q = (T-1)^{-1}\sum_{t=2}^T |y_t-y_{t-1}|$$
+
+works well. Then MASE is equivalent to MAE relative to a naïve method.
+
+]
+
+---
+class: middle
+
+.panelset[
+.panel[
+.panel-name[Glencore example]
+```{r returnsaccuracyagain, fig.height=3}
+autoplot(tmp) + xlab("Year") + ylab("monthly return") +
+  ggtitle("Forecasts for glencore monthly return") +
+  scale_color_manual(values=c('#000000','#1b9e77','#d95f02','#7570b3'),
+                     breaks=c("Mean","Naive","SeasonalNaive"),
+                     name="Forecast Method")
+```
+
+]
+.panel[
+.panel-name[Statistical accuracy]
+```{r returnaccuracytable, echo=FALSE}
+glen_m_ts2 <- window(glen_m_r,start=2018)
+tab <- matrix(NA,ncol=4,nrow=3)
+tab[1,] <- accuracy(glenfit1, glen_m_ts2)[2,c(2,3,5,6)]
+tab[2,] <- accuracy(glenfit2, glen_m_ts2)[2,c(2,3,5,6)]
+tab[3,] <- accuracy(glenfit1, glen_m_ts2)[2,c(2,3,5,6)]
+colnames(tab) <- c("RMSE","MAE","MAPE","MASE")
+rownames(tab) <- c("Mean method", "Naïve method", "Seasonal naïve method")
+knitr::kable(tab, digits=2) %>% 
+  kableExtra::kable_styling(bootstrap_options = "striped",full_width = TRUE)
+```
+]
+]
+
+
+---
+class: middle
+
+## External validity
+.hand-large[cross-validation]
+
+.panelset[
+.panel[
+.panel-name[traditional]
+```{r traintest2, fig.height=1, echo=FALSE, cache=TRUE}
+train = 1:18
+test = 19:24
+par(mar=c(0,0,0,0))
+plot(0,0,xlim=c(0,26),ylim=c(0,2),xaxt="n",yaxt="n",bty="n",xlab="",ylab="",type="n")
+arrows(0,0.5,25,0.5,0.05)
+points(train, train*0+0.5, pch=19, col="blue")
+points(test,  test*0+0.5,  pch=19, col="red")
+text(26,0.5,"time")
+text(10,1,"Training data",col="blue")
+text(21,1,"Test data",col="red")
+```
+]
+.panel[
+.panel-name[Time-series]
+```{r cv1, cache=TRUE, echo=FALSE, fig.height=4}
+par(mar=c(0,0,0,0))
+plot(0,0,xlim=c(0,28),ylim=c(0,1),
+       xaxt="n",yaxt="n",bty="n",xlab="",ylab="",type="n")
+i <- 1
+for(j in 1:10)
+{
+  test <- (16+j):26
+  train <- 1:(15+j)
+  arrows(0,1-j/20,27,1-j/20,0.05)
+  points(train,rep(1-j/20,length(train)),pch=19,col="blue")
+  if(length(test) >= i)
+    points(test[i], 1-j/20, pch=19, col="red")
+  if(length(test) >= i)
+    points(test[-i], rep(1-j/20,length(test)-1), pch=19, col="gray")
+  else
+    points(test, rep(1-j/20,length(test)), pch=19, col="gray")
+}
+text(28,.95,"time")
+```
+]
+]
+
+---
+class: middle
+
+.salt[
+**Explanation**
+
+* Forecast accuracy averaged over test sets.
+
+* Also known as "evaluation on a rolling forecasting origin"
+]
+
+---
+class: middle
+
+## tsCV function:
+* The following compares RMSE obtained via time series cross-validation with the residual RMSE
+
+```{r tscv, cache=TRUE, echo=T}
+glen_m_ts1 <- window(glen_m_r,
+                     end=c(2017,12))
+# one-step ahead forecast errors for drift method
+e <- tsCV(glen_m_r, rwf, drift=TRUE, h=1)
+# RMSE of forecast errors
+sqrt(mean(e^2, na.rm=TRUE))
+```
+
+```{r tscv1, cache=TRUE, echo=T}
+# In-sample residuals of drift method
+sqrt(mean(residuals(rwf(glen_m_ts1,drift=TRUE))^2,
+          na.rm=TRUE))
+```
+
+---
+class: middle
+
+.pull-left[
+
+.large[`tsCV function` Inference]
+
+* As expect, the RMSE from the residuals is smaller, as the corresponding *retrodictions* are based on a model fitted to the entire data set.
+* **They are not true forecasts**
+* A good way to choose the best forecasting model is to find the model with the smallest RMSE computed using time series cross-validation.
+
+]
+
+.pull-right[
+
+* Using `ftse_m_ts` the code below evaluates the forecasting performance of 1 to 10 steps ahead naive forecasts wuth `tsCV`, using MSE as the forecast error measure.
+
+```{r stepsheaderror,out.width="50%",fig.align="center"}
+e<-tsCV(ftse_m_ts,forecastfunction = naive,h=12)
+mse<-colMeans(e^2,na.rm = T)
+data.frame(h=1:12,MSE=mse) %>%
+  ggplot(aes(x=h,y=MSE)) + geom_point()
+```
+* As you would expect, the forecast error increases as the forecast horizon increases.
+
+]
+
+---
+class: middle
+
+## Prediction intervals
+
+* A forecast $\hat{y}_{T+h|T}$ is (usually) the mean of the conditional distribution $y_{T+h} \mid y_1, \dots, y_{T}$.
+* A prediction interval gives a region within which we expect $y_{T+h}$ to lie with a specified probability.
+* Assuming forecast errors are normally distributed, then a 95% PI is
+
+$$\hat{y}_{T+h|T} \pm 1.96 \hat\sigma_h$$
+
+- where $\hat\sigma_h$ is the st dev of the $h$-step distribution.
+
+- When $h=1$, $\hat\sigma_h$ can be estimated from the residuals.
+
+
+---
+class: middle
+
+## Prediction intervals
+
+
+**Naive forecast with prediction interval:**
+
+```{r djpi, echo=TRUE, cache=TRUE}
+glen_m_ts1 %>% rwf %>% residuals -> res
+res_sd <- sqrt(mean(res^2, na.rm=TRUE))
+c(tail(glen_m_ts1,1)) + 1.96 * res_sd * c(-1,1)
+```
+
+```{r djforecasts, echo=TRUE, cache=TRUE}
+rwf(glen_m_ts1, level=95)
+```
+
+---
+class: middle
+
+## Prediction intervals
+
+ * Point forecasts are often useless without prediction intervals.
+ * Prediction intervals require a stochastic model (with random errors, etc).
+ * Multi-step forecasts for time series require a more sophisticated approach (with PI getting wider as the forecast horizon increases).
+
+Assume residuals are normal, uncorrelated, sd = $\hat\sigma$:
+
+|||
+|:--:|:--:|
+| Mean forecasts: | $\hat\sigma_h = \hat\sigma\sqrt{1 + 1/T}$ |
+|Naïve forecasts: | $\hat\sigma_h = \hat\sigma\sqrt{h}$|
+|Seasonal naïve forecasts | $\hat\sigma_h = \hat\sigma\sqrt{k+1}$|
+| Drift forecasts: | $\hat\sigma_h = \hat\sigma\sqrt{h(1+h/T)}$|
+
+- where $k$ is the integer part of $(h-1)/m$.
+- Note that when $h=1$ and $T$ is large, these all give the same approximate value $\hat\sigma$.
+
+
+---
+class: middle
+
+## Prediction intervals
+
+* Computed automatically using: `naive()`, `snaive()`, `rwf()`, `meanf()`, etc.
+* Use `level` argument to control coverage.
+* Check residual assumptions before believing them.
+* Usually too narrow due to unaccounted uncertainty.
+
+
+---
+class: middle
+
+## Rethinking prediction uncertainty using Bayesian forecasting
+
+<!-- Taken from Tsuey (2010) Analysis of  Financial Time Series 3rd Edition page 55 -->
+
+* In practice, estimated parameters are often used to compute point and interval forecasts. 
+* This results in a **conditional forecast** because such a forecast does not take into consideration the uncertainty in the parameter estimates. 
+* In theory, one can consider parameter uncertainty in forecasting, but it is much more involved. 
+* A natural way to consider parameter and model uncertainty in forecasting is Bayesian forecasting with Markov chan Monte Carlo (MCMC) methods. 
+
+
+---
+class: middle
+
+.salt[
+# Bayesian time series forecasting
+
+- `bayesforecast` fits Bayesian time series using [*Stan*](https://mc-stan.org). 
+- Stan is a state-of-the-art platform for statistical modeling and high-performance statistial computation.
+
+]
+
+---
+class: middle
+
+.panelset[
+.panel[
+.panel-name[Daily FTSE]
+```{r, out.width="50%"}
+tq_get('^FTSE',from="2021-01-01") %>%
+  select(date,adjusted)->ftse
+ftse %>%
+  ggplot(aes(y=adjusted,x=date)) +geom_line(colour='pink')
+```
+]
+.panel[
+.panel-name[Bayesian naive forecast]
+```{r}
+library(bayesforecast)
+bayes_rw<-stan_naive(ftse$adjusted,chains = 4)
+```
+]
+.panel[
+.panel-name[Check the model simulations]
+```{r}
+mcmc_plot(bayes_rw)
+```
+
+]
+.panel[
+.panel-name[Check residuals]
+```{r, out.width="50%"}
+check_residuals(bayes_rw)
+```
+
+]
+.panel[
+.panel-name[Probabilistic forecasts]
+- Probabilistic forecasts for the next 100 days
+```{r, out.width="50%"}
+autoplot(forecast(object = bayes_rw,h = 100)) + ggtitle("forecast from a Bayesian naive model")
+```
+]
+]
+
+---
+class: middle
+
+## Using the state-of-the-art `Prophet` algorithm
+
+- https://facebook.github.io/prophet/
+
+.blockquote.large[
+Prophet is a procedure for forecasting time series data based on an additive model where non-linear trends are fit with yearly, weekly, and daily seasonality, plus holiday effects. It works best with time series that have strong seasonal effects and several seasons of historical data. Prophet is robust to missing data and shifts in the trend, and typically handles outliers well.]
+
+---
+class: middle
+
+## `Prophet` forecasts of the FTSE
+
+.panelset[
+.panel[
+.panel-name[Build Prophet Model]
+
+```{r}
+library(prophet)
+names(ftse)<-c("ds","y")
+m<-prophet(ftse)
+future <- make_future_dataframe(m, periods = 365)
+tail(future)
+```
+]
+.panel[
+.panel-name[Predict using model]
+
+```{r}
+forecasts_ph<-predict(m,future)
+```
+
+]
+.panel[
+.panel-name[plot forecasts]
+```{r,out.width="60%"}
+plot(m, forecasts_ph)
+```
+]
+.panel[
+.panel-name[Inference]
+- The default model in the `Prophet` algorithm is linear and additive
+- While this is a *state-of-the-art* automated probabilistic forecasting technique, it performs poorly given our domain knowledge of the ebbs and flows of financial markets
+- .fatinline[With great power comes great responsibility]
+- Fine tuning the algorithm is probably required if you are to use this in your project.
+- Compared to the naive model is it an improvement??
+]
+]
+
+---
+class: middle
+
+# Rethinking regression assumptions
+
+.saltinline[
+|Assumption | Importance |
+|:---:|:---:|
+|Validity | $\downarrow$|
+|Linear and additive |  Decreasing|
+|Independence of errors |Importance|
+|Equality of variance | ... |
+|Normality of errors | Least important|
+]
+* Further assumptions are required if a regression coefficients are to be given a casual interpretation, in general it is importance to check there is no **endogeniety** present in the model 
+
+---
+class: middle
+
+## Validity
+
+* The data you are analyzing should map to the research question you are trying to answer.  
+* This is obvious but is frequently ignore due to inconvenience.
+* Optimally this means that the outcome measure should accurately reflect the phenomenon of interest.
+
+* Choosing predictors variables is generally the most challenging step.
+* Optimally all *relevant* predictors should be included, but it can be difficult to determine which are necessary and how to interpret coefficients with large standard errors.
+* Finally a representation sample that reflects the true distribution of the underlying populations is vital to make generalized inferences. 
+
+---
+class: middle
+
+## Additivity and linearity
+
+* The most important mathematical assumption of a regression model is that its deterministic component is a linear function of the separate predictors:
+
+$$y_t \sim N(\mu,\sigma^2)$$
+where 
+
+$$\mu_t = \beta_0 + \beta_1 x_{1,t} + \beta_2 x_{2,t} + \cdots + \beta_kx_{k,t}$$
+
+* If additivity and linearity are violated it might make sense to transform the data.
+
+---
+class: middle
+
+## Additivity and linearity
+
+* Consider $y= x_1^{\beta_1} \times x_2^{\beta_2} \times x_3^{\beta_3}$ where y is a multiplicative and non-linear function of the predictors. 
+
+* By taking logs of both sides we induce linearity and additivity $ln(y)=B_1ln(x_1)+B_2ln(x_2)+B_3ln(x_3)$
+
+* Important to note that that now our betas are slightly different!
+
+* When two predictors are suspected of having a multiplicative influence an **interaction term** can be used 
+
+---
+class: middle
+
+## Other assumptions
+
+* **Independence of errors**: The classical linear regression model assumes that model errors are independent.
+* **Equal variance of errors**: If the variance of the regression errors are unequal, estimation is more efficiently performed using weighted least squares, where each point is weighted inversely to its variance.
+* Unequal variance doesn’t affect the most important aspect of a regression model, which is the form of the predictor.
+* **Normality of errors**: This is generally the least important and for the purpose of estimating (training) the regression line (as compared to predicting individual data points) the assumption of normality is barely important at all.
+
+---
+class: middle
+
+# Selecting predictors and forecast evaluation
+
+* When there are many predictors, how should we choose which ones to use?
+
+* We need a way of comparing two competing models (*or narrow down our choice*)
+
+**What not to do!**
+
+* Plot $y$ against a particular predictor ($x_j$) and if it shows no noticeable relationship, drop it.
+
+* Do a multiple linear regression on all the predictors and disregard all variables whose  $p$ values are greater than 0.05.
+
+* Maximize $R^2$ or minimize MSE
+
+---
+class: middle
+
+# Rethinking: model comparison and selection
+
+## Model checking
+
+* Every model is a merger of **sense** and **nonsense**
+* When we understand a model, we find its sense and control its nonsense.
+* Complex models should not be view with awe but with **informed** suspicion.
+* This intellectual discipline comes with breaking down the model into its components and checking its validity.
+
+---
+class: middle
+
+## Model comparison and selection
+
+* As modelers of financial time series phenomena we are confronted with a paradox
+* Finance is an empirical science based on empirical facts
+* Data are scarce, and many theories and models fit the same data
+* How do we therefore set up a null model and use data to falisfy it??
+
+---
+class: middle
+
+## Model comparison and selection
+
+
+* As a result of the scarcity of financial data, many statistical models, even simple ones, can be compatible with the same data with roughly the same level of significance.
+* For example, the stock price process have been described by many competing statistical models, including the *random walk* we encountered earlier.
+* See Timmermann, A. (2008). Elusive return predictability. International Journal of Forecasting, 24, 1–18 in week 5 reading
+* In this paper they fit 11 possible models forecasting models with varying success.
+
+---
+class: middle
+
+## Model complexity and sample size
+```{r googletrendML, message=FALSE, warning=FALSE,fig.height=3}
+library(gtrendsR)
+res<-gtrends(c("machine learning in finance"))
+plot(res) +
+  theme(legend.position = "none") +
+  labs(title="Machine learning in finance",subtitle = "Latest google trends data")
+
+```
+
+---
+class: middle
+
+## Model complexity and sample size
+
+* Machine learning (ML) in financial modeling has gained in popularity as a consequence of the diffusion of low-cost high-performance computing.
+* ML uses a family of highly flexible models that can approximate sample data with unlimited precision.
+* For example neural networks (*deep learning*), with an unrestricted number of layers and nodes, can approximate any function with arbitrary precision.
+* In mathematics, they  are known as a *universal function approximator*.
+* Some *machine learning* appears in most financial econometric endeavours.
+
+---
+class: middle
+
+## Model complexity and sample size
+
+* In practice, representing sample data with high precision results in poor forecasting performance.
+* Financial data features have both a structural and noise component.
+* A high precision model will try to exactly fit the structural part of data (in-sample) but will also try to match the unpredictable noise.
+* Recall this phenomenon is called **overfitting**.
+
+---
+class: middle
+
+## Model complexity and sample size
+
+* Machine learning theory provides some criteria to constrain the complexity of the model so that it fits the data only partially but, as a trade-off, retains some forecasting power.
+* **Information criteria statistics**
+* The theory intuits that: 
+  * **The structure of the data and the sample size dictate the complexity of the laws that can be learned by computer algorithms**.
+*  This is achieve using a penality function which is itself a function of sample size and complexity. 
+
+---
+class: middle
+
+## Model complexity and sample size
+
+* This learning theory constrains model dimensionality to make them adapt to the sample size and structure.
+* The penalty term usually increases with the number of parameters but gets smaller with sample size.
+* The point is if we have only a small sample data set, we can only learning simple patterns, provided those patterns exist.
+
+
+>MODEL COMPLEXITY vs FORECASTING ABILITY
+
+---
+class: middle
+
+## Model complexity and sample size
+
+.pull-left[
+* At the other end is the **theoretical approach** to model selection, typical in the physical sciences, which is based on human creativity.
+* Models are the result of new scientific insights that have been embodied in theories.
+* A well-known example in finance is CAPM.
+]
+
+.pull-right[
+* In modern computer-based financial econometrics a hybrid approach, mixing  both theoretical and machine learning elements, is common.
+1. The theoretical foundation identify a family of models
+2. Learning approach chooses the *correct* model(s) within the family.
+* For example ARCH/GARCH family of models was suggested by theory but selected via machine learning techniques.
+]
+
+
+
+
