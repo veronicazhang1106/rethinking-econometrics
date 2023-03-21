@@ -1,0 +1,873 @@
+---
+title: "FIN7028: Times Series Financial Econometrics 8"
+author: "Barry Quinn"
+date: today
+date-format: iso
+format: 
+  revealjs:
+    slide-number: true
+    theme: default
+    css: Quarto-style.css
+    width: 1600
+    height: 900
+    self-contained: true
+    highlight-style: github
+    footer: "Barry Quinn CStat"
+    preview-links: auto
+    scrollable: true
+title-slide-attributes:
+  data-background-image: G:/1-Study II/PhD/Queens PhD Program/7-R Projects/FIN7028-rethinking-econometrics/course-material/slides/img/title-slide.png
+  data-background-size: cover
+execute: 
+  eval: true
+  echo: true
+  output: true
+  include: true
+  warning: false
+  error: false
+  
+---
+
+```{r setup and loading packages}
+#| label: loading libraries
+#| output: false
+#| include: false
+
+library(tidyverse)
+library(tidyquant)
+library(forecast)
+library(knitr)
+library(rmarkdown)
+library(tinytex)
+
+
+```
+
+
+
+# [Learning Outcomes]{style="color:olive;"}
+
+:::{.prophet}
+
+- Categories of algorithms in capital markets
+- Algorithmic ARIMA modelling
+- Practical example with some of the project data
+- Generative dynamic models at scale [**Prophet Explained**]{style="color: red;"}
+
+:::
+
+
+
+::: {.p2}
+
+## Predictive Algorithms in Capital Market
+
+- Three categories
+  1. Computational Statistics
+  2. Machine Learning Algorithms
+  3. Complex Systems
+
+:::
+
+
+
+## Computational Statistics
+
+- These models refers to computationally intensive statistical methods
+- Resampling methods (e.g., Bootstrap and Cross-Validation), 
+- Monte Carlo methods, 
+- Kernel Density estimation and other Semi and Non-Parametric methods
+- Generalized Additive Models (Efron and Hastie, 2016)[^article].
+- Regularisation Methods
+
+[^article]: Bradley, E. & Trevor, H. Computer Age Statistical Inference. (Cambridge University Press, 2016)
+
+
+
+## [Resampling methods]{style="color: #0F4C81;"}
+
+### A variety of methods for doing one of the following:
+
+::: {.p5}
+
+1. estimating the precision of sample statistics using subsets of data (e.g. jackknifing) or drawn randomly from a set of data points (e.g. bootstrapping)
+
+2. Exchanging labels on data points when performing significance tests (e.g. permutation tests);
+
+3. Validating models by using random subsets (e.g. repeated cross-validation, for example the `tsCV()` from previous lectures.
+
+:::
+
+
+
+## [Monte carlo methods]{style="color: #0F4C81;"}
+
+### A broad class of computational algorithms that rely on repeated random sampling to approximate integrals.
+
+::: {.p6}
+
+- Particularly used to compute expected values (e.g. options payoff) 
+
+- Including those meant for inference and estimation (e.g., Bayesian estimation `stan_glm()`, `prophet()` , simulated method of moments)
+
+:::
+
+
+
+---
+
+::: {.p7}
+
+### Kernel Density Estimation
+
+A set of methods used to approximate multivariate density functions from a set of datapoints; it is largely applied to generate smooth functions, reduce outliers effects and improve joint density estimations, sampling, and to derive non-linear fits.
+
+### Generalised Additive Models
+
+A large class of nonlinear models widely used for inference and predictive modelling (e.g. time series forecasting, curve-fitting, `prophet()`)
+
+### Regularisation Methods
+
+Regularisation methods are increasingly used as an alternative to traditional hypothesis testing and criteria-based methods, for allowing better quality forecasts with a large number of features.
+
+:::
+
+---
+
+
+
+## AI and Machine Learning[^AI] 
+
+**This AI continuum of epistemological models spans three main communities**
+
+::: {.p8}
+
+- Knowledge-based or heuristic algorithms (e.g. rule-based) - where knowledge is explicitly represented as ontologies or IFTHEN rules rather than implicitly via code (Giarratano and Riley, 1998)
+
+- Evolutionary or metaheuristics algorithms - a family of algorithms for global optimization inspired by biological evolution, using population-based trial and error problem solvers with a metaheuristic or stochastic optimization character (e.g. Genetic Algorithms, Genetic Programming, etc.) (Poli et al., 2008; Brownlee, 2011)
+
+- Machine Learning algorithms - a type of AI program with the ability to learn without explicit programming, and can change when exposed to new data; mainly comprising Supervised (e.g. Support Vector Machines, Random Forest, etc.), Unsupervised (e.g. K-Means, Independent Component Analysis, etc.), and Reinforcement Learning (e.g. Q-Learning, Temporal Differences, Gradient Policy Search, etc.) (Hastie et al., 2009; Sutton and Barto, 2018).
+
+:::
+
+[^AI]: Russell and Norvig (2016) provide an in-depth view of different aspects of AI.
+
+
+
+# [Complex Systems]{style="color: #0F4C81;"}
+
+::: {.p9}
+
+**A complex system is any system featuring a large number of interacting components (e.g. agents, processes, etc.) whose aggregate activity is nonlinear (not derivable from the summations of the activity of individual components) and typically exhibit hierarchical self-organization under selective pressures (Taylor, 2014; Barabási, 2016).**
+
+:::
+
+
+
+## A rule-based ARIMA algorithm
+
+::: {.p10}
+
+> `auto.arima()`
+
+- For a non-seasonal ARIMA process we first need to select appropriate orders: $p,q,d$
+- We use the [Hyndman and Khandakar (JSS, 2008)](https://www.jstatsoft.org/article/view/v027i03) algorithm:
+
+<blockquote style="color: red;">
+- Select no. differences $d$ and $D$ via KPSS test and seasonal strength measure.
+- Select $p,q$ by minimising AICc.
+- Use stepwise search to traverse model space.
+</blockquote>
+
+:::
+
+
+
+## How does `auto.arima()` work?
+
+::: {.p11}
+
+<blockquote style="color: red;">
+
+$$\text{AICc} = -2 log(L) + 2(p+q+k+1)\left[1 +
+\frac{(p+q+k+2)}{T-p-q-k-2}\right].$$
+
+- where $L$ is the maximised likelihood fitted to the differenced
+data,
+
+- $k=1$ if $c\neq 0$ and $k=0$ otherwise.
+</blockquote>
+
+:::
+
+
+
+::: {.p12}
+
+## [Algorithmic rule 1:]{style="color: #0F4C81;"}
+
+- Select current model (with smallest AICc) from:
+- ARIMA $(2,d,2)$
+- ARIMA $(0,d,0)$
+- ARIMA $(1,d,0)$
+- ARIMA $(0,d,1)$
+
+:::
+
+
+
+::: {.p13}
+
+## [Algorithmic rule 2:]{style="color: #0F4C81;"}
+
+- Consider variations of current model:
+
+  * vary one of $p,q,$ from current model by $\pm1$;
+  * $p,q$ both vary from current model by $\pm1$;
+  * Include/exclude $c$ from current model.
+
+[Model with lowest AICc becomes current model.]{style="color: red;"}
+
+### Repeat rule 2 until no lower AICc can be found
+
+:::
+
+
+
+## Example: VIX index
+
+::: {.panel-tabset}
+
+### Human Choice
+
+```{r}
+
+tidyquant::tq_get('^VIX') %>%
+  select(adjusted) %>%
+  ts() -> vix_ts
+ggtsdisplay(log(vix_ts))
+
+```
+
+
+### Human-Choice
+
+```{r}
+ggtsdisplay(diff(log(vix_ts)))
+
+```
+
+
+### Human Choice
+
+```{r}
+(fit <- Arima(log(vix_ts),order=c(7,1,0)))
+
+```
+
+
+### Algorithmic Choice
+
+```{r}
+auto.arima(log(vix_ts))
+
+```
+
+
+### Try Harder Algorithm
+
+```{r}
+(fit.auto<-auto.arima(log(vix_ts), 
+                      stepwise=FALSE,
+                      approximation=FALSE))
+
+```
+
+
+### Discussion
+
+- Setting both `stepwise` and `approximation` arguments to `FALSE` will slow the automation down but provides a more exhaustive search for the appropriate model.
+- The `auto.arima` function then searches over all possible models using MLE.
+- See `help(auto.arima)` for more details.
+
+:::
+
+
+
+## Human Vs Algo: Residual Diagnostics
+
+::: {.panel-tabset}
+
+### Human Choice
+
+```{r}
+checkresiduals(fit, test=FALSE)
+
+```
+
+
+### Human Forecasting
+
+```{r}
+fit %>% forecast(h=252) %>% autoplot
+
+```
+
+
+### Algorithm
+
+```{r}
+checkresiduals(fit.auto,test = FALSE)
+
+```
+
+
+### Algo Forecasting
+
+```{r}
+fit.auto %>% forecast(h=252) %>% autoplot()
+
+```
+
+:::
+
+
+
+## Modelling procedure with `Arima`
+
+<blockquote style="color: red;">
+1. Plot the data. Identify any unusual observations.
+
+2. If necessary, transform the data (using a Box-Cox transformation) to stabilize the variance.
+
+3. If the data are non-stationary: take first differences of the data until the data are stationary. 
+
+4. Examine the ACF/PACF: Is an AR(p) or MA(q) model appropriate?
+
+5. Try your chosen model(s), and use the AICs to search for a better model. 
+
+6. Check the residuals from your chosen model by plotting the ACF of the residuals, and doing a portmanteau test of the residuals. If     they do not look like white noise, try a modified model.
+
+7. Once the residuals look like white noise, calculate forecasts.
+</blocquote>
+
+
+
+::: {.p17}
+
+## Modelling procedure with `auto.arima`
+
+1. Plot the data. Identify any unusual observations.
+2. If necessary, transform the data (using logs) to stabilize the variance.
+
+3. Use `auto.arima` to select a model.
+
+4. Check the residuals from your chosen model by plotting the ACF of the residuals, and doing a portmanteau test of the residuals. If they do not look like white noise, try a modified model.
+5. Once the residuals look like white noise, calculate forecasts.
+
+:::
+
+
+## Project based example
+
+### Russell 2000 index monthly returns
+
+:::::: {.columns}
+
+:::{.column width="60%"}
+```{r r2000r1,echo=TRUE}
+tsfe::indices %>%
+  select(date,`RUSSELL 2000 - PRICE INDEX`) %>%
+  rename(r2000=`RUSSELL 2000 - PRICE INDEX`) %>%
+  drop_na() %>%
+  tq_transmute(select =r2000,mutate_fun = periodReturn,type='log') ->monthly_r2002r
+  ts(monthly_r2002r$monthly.returns, start = c(1988,1))->r2000r_m_ts
+autoplot(r2000r_m_ts) + xlab("Year") +
+  ylab("monthly log returns")
+```
+
+:::
+
+::: {.column width="40%"}
+1. Time plot shows sudden changes, particularly big movements in 2007/2008 due to financial crisis. Otherwise nothing unusual and no need for  data adjustments.
+2. Little evidence of changing variance, so no log transformation needed.
+3. Data are clearly stationary, so no [*differencing*]{style="color: darkblue;"} required.
+
+:::
+
+::::::
+
+
+
+## Project based example
+
+### Russell 2000 index monthly returns
+
+:::::: {.columns}
+
+::: {.column width="60%"}
+```{r r2000r2,echo=TRUE}
+ggtsdisplay(r2000r_m_ts)
+```
+
+:::
+
+::: {.column width="40%"}
+1. PACF is suggestive of AR(5). So initial candidate model is ARIMA(5,0,0). No other obvious candidates.
+2. Fit ARIMA(5,0,0) model along with variations: ARIMA(4,0,0), ARIMA(3,0,0), ARIMA(4,0,1), etc. ARIMA(3,0,1) has smallest [*AICc*]{style="color: darkblue;"} value.
+
+:::
+
+::::::
+
+
+
+## Project based example
+
+::: {.panel-tabset}
+
+### Manual fit
+```{r r2000r3}
+(fit <- Arima(r2000r_m_ts, order=c(3,0,1)))
+```
+
+### Residual check
+- ACF plot of residuals from ARIMA(3,0,1) model look like white noise.
+```{r r20005,echo=T}
+checkresiduals(fit, plot=FALSE)
+```
+
+### Forecasting
+```{r,echo=T}
+fit %>% forecast(h=24) %>% autoplot
+```
+
+:::
+
+
+::: {.p21}
+
+## [Understanding the ARIMA output]{style="color: #0F4C81;"}
+
+```{r r2000r6}
+#| echo: false
+
+(fit <- Arima(r2000r_m_ts, order=c(3,0,1)))
+```
+
+:::
+
+
+
+## [Understanding the ARIMA output]{style="color: #0F4C81;"}
+
+```{r coeffs}
+#| echo: false
+
+a=unname(round(fit$coef["intercept"],3))
+ar1=unname(round(fit$coef["ar1"],3))
+ar2=unname(round(fit$coef["ar2"],3))
+ar3=unname(round(fit$coef["ar3"],3))
+ma1=unname(round(fit$coef["ma1"],3))
+```
+
+- The fitted model is:
+
+$$y_t=`r ar1`y_{t-1}`r ar2`y_{t-2}`r ar3`y_{t-3} +`r ma1`\varepsilon_{t-1}+0.008$$
+
+- The standard errors are 0.13, 0.06, 0.05, 0.12 and 0.002, respectively.
+- This suggest that only the AR1 and the constant (mean) are more than 2 SEs away from zero and thus statistically significant.
+- The significance of $\phi_0$ of this entertained model implies that the expected mean return of the series is positive.
+
+- In fact $\hat{\mu}=`r a`/(1-(`r ar1``r ar2``r ar3`)) =`r round(a/(1-sum(ar1,ar2,ar3)),4)`$ which is small but has long term implications.
+
+- Using the multi-period return definition from the financial data lecture an annualised log return is simple $\sum_1^{12} y_t$ $\approx `r round(12*a/(1-sum(ar1,ar2,ar3)),2)`$ per annum. 
+
+
+
+## Frequentist prediction intervals
+
+::: {.p23}
+
+$$\hat{y}_{T+h|T} \pm 1.96\sqrt{v_{T+h|T}}$$
+
+where $v_{T+h|T}$ is estimated forecast variance.
+
+* $v_{T+1|T}=\hat{\sigma}^2$ for all ARIMA models regardless of parameters and orders.
+* Multi-step prediction intervals for ARIMA(0,0,$q$):
+
+$$\displaystyle y_t = \varepsilon_t + \sum_{i=1}^q \theta_i \varepsilon_{t-i}$$
+
+$$\displaystyle v_{T|T+h} = \hat{\sigma}^2 \left[ 1 + \sum_{i=1}^{h-1} \theta_i^2\right], \qquad\text{for~} h=2,3,\dots.$$
+
+* AR(1): Rewrite as MA($\infty$) and use above result.
+* Other models beyond scope of this subject.
+
+:::
+
+
+
+::: {.p24}
+
+## Prediction intervals
+
+- Prediction intervals **increase in size with forecast horizon**.
+- Prediction intervals can be difficult to calculate by hand
+- Calculations assume residuals are **uncorrelated** and **normally distributed**.
+- Prediction intervals tend to be too narrow.
+  + the uncertainty in the parameter estimates has not been accounted for.
+  + the ARIMA model assumes historical patterns will not change during the forecast period.
+  + the ARIMA model assumes uncorrelated future [*errors*]{style="color: darkblue;"}
+
+:::
+
+
+
+# Prophet algorithm
+
+
+
+## What is Prophet?
+
+> [Prophet is a procedure for forecasting time series data based on an additive model where non-linear trends are fit with yearly, weekly, and daily seasonality, plus holiday effects.]{style="color:red;"}
+
+::: {.prophet1}
+- It works best with time series that have strong seasonal effects and several seasons of historical data. 
+- Prophet is robust to missing data and shifts in the trend, and typically handles outliers well.
+- It uses a [**computational statistics**]{style="color:blue;"} algorithm know as [**generalised additive models**]{style="color:blue;"}. 
+
+:::
+
+
+
+## How does it work? 
+
+:::::: {.columns}
+::: {.column width="50%"}
+![](G:/1-Study II/PhD/Queens PhD Program/7-R Projects/FIN7028-rethinking-econometrics/course-material/slides/img/spongebob.gif){.absolute top=100 left=0 width="700" height="600"}
+
+:::
+
+::: {.column width="50%"}
+- The procedure makes use of a decomposable time series model with three main model components: [heatinline trend, seasonality, and holidays]{style="color: red;"}.
+
+- Similar GAM, with time as a predictor, Prophet fits several linear and non-linear functions of time as components. In its simplest form;
+
+:::
+
+::::::
+
+
+
+# The maths
+
+<blockquote style="color: red;">
+
+$$y(t) = g(t) + s(t) + h(t) + e(t)$$
+
+- where $g(t)$ trend models non-periodic changes (i.e. growth over time)
+- $s(t)$ seasonality presents periodic changes (i.e. weekly, monthly, yearly)
+- $h(t)$ ties in effects of holidays (on potentially irregular schedules ≥ 1 day(s))
+- e(t) covers idiosyncratic changes not accommodated by the model
+
+</blockquote>
+
+
+
+---
+
+::: {.p29}
+
+In other words, the procedure’s equation can be written;
+
+> [Modeling seasonality as an additive component is the same approach taken by exponential smoothing… GAM formulation has the advantage that it decomposes easily and accommodates new components as necessary, for instance when a new source of seasonality is identified.]{style="color: red;"}
+
+- Prophet is essentially “framing the forecasting problem as a curve-fitting exercise” rather than looking explicitly at the time based dependence of each observation.
+
+:::
+
+---
+
+
+
+## [Trend]{style="color: gold;"}
+
+::: {.p30}
+
+- The procedure provides two possible trend models for g(t), “a saturating growth model, and a piecewise linear model.”
+
+### **Saturating Growth Model**
+
+- If the data suggests promise of saturation, growth is viral-like such as bitcoin prices, then setting growth='logistic' is the move.
+- Typical modeling of these *nonlinear, saturating trends* is basically accomplished;
+
+<blockquote style="color: red;">
+
+$$ g(t)=\frac{C}{1+exp(-k(t-m))}$$
+
+where: C is the carrying capacity; k is the growth rate; m is an offset parameter
+
+- There are two primary aspects of growth at Facebook ([**fluctuating carrying capacity**]{style="color: midnightblue;"} and [**volatile rate of change**]{style="color: midnightblue;"}) that are not captured in this simplified equation, though.
+
+</blockquote>
+
+:::
+
+
+
+## [Trend]{style="color: gold;"}
+
+### Carrying Capacity versus Time
+
+- First, as with many scalable business models carrying capacity is not constant — as the number of people in the world who have access to the Internet increases, so does the growth ceiling.
+
+- Accounting for this is done by replacing the fixed capacity C with a time-varying capacity $C(t)$.
+
+
+
+## [Trend]{style="color: gold;"}
+
+### Rate of Change versus Time
+
+- Second, the market does not allow for stagnant technology.
+
+- Advances like those seen over the past decade in handheld devices, app development, and global connectivity, virtually ensure that growth rate is not constant.
+
+- Because this rate can quickly compound due to new products, the model must be able to incorporate a varying rate in order to fit historical data.
+
+
+
+## [Trend]{style="color: gold;"}
+
+### Trend changes growth models
+
+- In financial time series structural breaks a common
+
+> [Roughly speaking a structural break change point is where some type of random shock changes the statistical properties of the time series, for example a permanent change in the mean value of the times series.]{style="color: red;"}
+
+- Prophet incorporates [**trend changes**]{style="color: darkblue;"} in the growth model by explicitly defining changepoints where the growth rate is allowed to change.
+
+
+
+## [Trend]{style="color: gold;"}
+
+::: {.p34}
+
+- Suppose there are S changepoints at times $s_j, j = 1,…,S$.
+
+- Prophet defines a vector of rate adjustments;
+$$\delta \in \R ^{S}$$
+
+- where: $\delta_j$ is the change in rate that occurs at time $s_j$
+- The rate at any time t is then the base rate $k$, plus adjustments up to that time;
+
+$$k + \sum_{j:t >\delta_j}\delta_j$$
+
+- This is represented more cleanly by defining a vector
+
+$$a(t) \in \{0,1\}^S$$
+
+- such that
+
+$$a_j(t)= \begin{cases}1,\text{if }t\ge s_j, \\ 0,\text{otherwise} \end{cases}$$
+
+:::
+
+
+
+## [Trend]{style="color: gold;"}
+
+> [The rate at time t is then k+*a*(t)ᵀ*δ*. When the rate k is adjusted, the offset parameter m must also be adjusted to connect the endpoints of the segments. The correct adjustment at changepoint j is easily computed as- Taylor et al., (2017)]{style="color: red;"}
+
+$$\gamma_j=\left(s_j-m-\sum_{l<j}\gamma l \right) \left(1-\frac{k+\sum_{l<j}\delta_l}{k+\sum_{l \le j} \delta_l} \right)$$
+
+- At last, the piecewise growth=‘logistic’ model is reached;
+
+$$g(t)=\frac{C(t)}{1+exp(-(k+a(t)^T\delta)(t-(m+a(t)^T\gamma)))}$$
+
+
+
+## [Trend]{style="color: gold;"}
+
+::: {.p36}
+
+> [An important set of parameters in our model is C(t), or the expected capacities of the system at any point in time. Analysts often have insight into market sizes and can set these accordingly. There may also be external data sources that can provide carrying capacities,such as population forecasts from the World Bank.-Taylor et al., (2017)]{style="color: red;"}
+
+- In application, the logistic growth model presented here is a special case of generalized logistic growth curves — which is only a single type of sigmoid curve — allowing the relatively straightforward extension(s) of this trend model to other families of curves.
+
+:::
+
+
+
+## [Trend]{style="color: gold;"}
+
+### Linear Trend with Changepoints
+
+- The second — much simpler and default — trend model is a simple Piecewise Linear Model with a constant rate of growth.
+- It is best suited for problems without a market cap or other max in sight, and is set via growth='linear'.
+- For forecasting problems that do not exhibit saturating growth, a piece-wise constant rate of growth provides a parsimonious and often useful model.
+- Modeling the linear trend is easily realized with Prophet. 
+
+<blockquote style="color: red;">
+
+$$g(t)=(k+a(t)^T\delta)t+(m+a(t)^T\gamma)$$
+
+where: k is the growth rate;δ has the rate adjustments; m is the offset parameter; and, to make the function continuous, γ_j is set to:
+
+</blockquote>
+
+
+
+## Automatic Changepoint Selection
+
+::: {.p38}
+- If known, the changepoints $s_j$ can be specified by the user as dates of known events such as the start of recessions  and other growth-altering events,
+- Or by default, changepoints may be automatically selected given a set of candidates.
+
+> [Automatic selection can be done quite naturally with the formulation in either model by putting a sparse prior on $\delta$]{style="color: red;"}
+
+- Often, it is advisable to specify a large number of changepoints (e.g. one per month for a several year history) and use the prior:
+
+$$\delta_j \sim Laplace(0,\tau)$$
+
+- where $\tau$ directly controls the flexibility of the model in altering its rate
+
+:::
+
+::: {.callout-impotant}
+## Critical note
+
+[A sparse prior on the adjustments $\delta$ has no impact on the primary growth rate k, so as $\tau$ progresses to 0 the fit reduces to standard (not-piecewise) logistic or linear growth.]{style="color: rebeccapurple;"}
+
+:::
+
+
+
+## Trend Forecast Uncertainty
+
+- When the model is extrapolated past the history to make a forecast, the trend g(t) will have a constant rate; the uncertainty in the forecast trend is estimated by extending the generative model forward.
+
+- The generative model for the trend is that there are;
+- S changepoints
+- over a history of T points
+- each of which has a rate change $\delta_j \sim Laplace(0,\tau)$
+
+- Simulation of future rate changes (that emulate those of the past) is achieved by replacing τ with a variance inferred from data.
+
+
+
+## Trend Forecast Uncertainty
+
+### going Bayesian
+
+<blockquote style="color: red; font-size: 28px;">
+
+- In a fully Bayesian framework this could be done with a hierarchical prior on τ to obtain its posterior, otherwise we can use the maximum likelihood estimate of the rate scale parameter:
+
+$$\lambda=\frac{1}{S}\sum_{j=1}^S |\delta_j|$$
+
+- Future changepoints are randomly sampled in such a way that the average frequency of changepoints matches that in the history:
+
+$$\forall j>T, \begin{cases} \delta_j=0 \text{ w.p. } \frac{T-S}{T}, \\ \delta_j \sim \text{Laplace} (0,\lambda) \text{ w.p. } \frac{S}{T} \end{cases}$$
+
+- Thus, uncertainty in the forecast trend is measured by assuming the future will see the same average frequency and magnitude of rate changes that were seen in the history. 
+- Once λ has been inferred from the data, this generative model is deployed to “simulate possible future trends and use the simulated trends to compute uncertainty intervals.”
+
+</blockquote>
+
+
+
+## Advantage of modeling uncertainty
+
+- [Prophet’s assumption that the trend will continue to change with the same frequency and magnitude as it has in the history is fairly strong, so don’t bank on the uncertainty intervals having exact coverage.]{style="font-size: 58px;"}
+
+- As $\tau$ is increased the model has more flexibility in fitting the history and so training error will drop. 
+
+- Even so, when projected forward this flexibility is prone to produce wide intervals. 
+
+- [The uncertainty intervals are, however, a useful indication of the level of uncertainty, and especially an indicator of over fitting.]{style="color: red;"}
+
+
+
+## [Seasonality]{style="color: deepskyblue;"}
+
+- The seasonal component s(t) provides a adaptability to the model by allowing periodic changes based on sub-daily, daily, weekly and yearly seasonality.
+
+> [Business time series often have multi-period seasonality as a result of the human behaviors they represent. For instance, a 5-day work week can produce effects on a time series that repeat each week, while vacation schedules and school breaks can produce effects that repeat each year. To fit and forecast these effects we must specify seasonality models that are periodic functions of [time] t. - Taylor et al., (2017)]{style="color: red;"}
+
+- Prophet relies on [Fourier series](https://otexts.com/fpp2/dhr.html) to provide a malleable model of periodic effects. 
+- P is the regular period the time series will have (e.g. P = 365.25 for yearly data or P = 7 for weekly data, when time is scaled in days).
+
+
+
+## [Seasonality: the maths]{style="color: deepskyblue"}
+
+::: {.p43}
+
+- Approximate arbitrary smooth seasonal effects is therefore tied in with a standard Fourier series;
+
+$$s(t)= \sum_{n=1}^N \left(a_n cos\left(\frac{2 \pi nt}{P}\right) + b_n sin\left(\frac{2 \pi nt}{P} \right) \right)$$
+
+> [Fitting seasonality requires estimating the 2N parameters $\beta = \left[a_1,b_1,\dots,a_N,b_N \right]^T$. This is done by constructing a matrix of seasonality vectors for each value of t in our historical and future data, for example with yearly seasonality and N= 10:]{style="color: red;"}
+
+$$X(t)=\left[cos \left(\frac{2 \pi (1)t}{365.25}\right),\dots,sin\left(\frac{2 \pi (10)t}{365.25}\right) \right]$$
+
+- Meaning the seasonal component is;
+
+$$s(t)=X(t)\beta$$
+
+:::
+
+
+
+## [Seasonality: going Bayesian]{style="color: deepskyblue"}
+
+::: {.p44}
+
+- In the [*generative*]{style="color: darkblue;"} model, Prophet takes $\beta \sim Normal(0,\sigma^2)$ to impose a smoothing prior on the seasonality.
+
+- Truncating the series at N applies a low-pass filter to the seasonality, so, albeit with increased risk of overfitting, increasing N allows for fitting seasonal patterns that change more quickly.
+
+- For yearly and weekly seasonality we have found N = 10 and N = 3 respectively to work well for most problems. 
+
+- The choice of these parameters could be automated using a model selection procedure such as AIC.
+
+:::
+
+
+
+## [Holidays and Events]{style="color: red;"}
+
+- Impact of a particular holiday on the time series is often similar year after year, making it an important incorporation into the forecast. 
+
+- The component $h(t)$ speaks for predictable events of the year including those on irregular schedules (e.g. Easter).
+
+- To utilize this feature, the user needs to provide a custom list of events. 
+
+- One simple way of including this list of holidays into the model is made straightforward by assuming that the effects of holidays are independent.
+
+> [It is often important to include effects for a window of days around a particular holiday, such as the weekend of Thanksgiving. To account for that we include additional parameters for the days surrounding the holiday, essentially treating each of the days in the window around the holiday as a holiday itself. - Taylor et al., (2017)]{style="color: red;"}
+
+
+::: {.p46}
+
+## Some further reading
+
+- [Chapter 8 ARIMA models](https://otexts.com/fpp2/arima.html)
+
+- [Chapter 9 Dynamic regression models](https://otexts.com/fpp2/dynamic.html)
+
+- Taylor SJ, Letham B. 2017. Forecasting at scale. PeerJ Preprints 5:e3190v2 <https://doi.org/10.7287/peerj.preprints.3190v2>
+
+:::
+
+
+
+
+
+
+
+
+
+
+
